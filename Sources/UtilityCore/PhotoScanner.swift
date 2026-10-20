@@ -17,6 +17,11 @@ public struct PhotoItem: Identifiable, Hashable, Sendable {
     public let visualHash: UInt64?
     public let isVideo: Bool
     public var id: URL { url }
+    /// Foto o video (gli altri file servono solo per i doppioni identici).
+    public var isMedia: Bool {
+        let ext = url.pathExtension.lowercased()
+        return PhotoScanner.imageExtensions.contains(ext) || PhotoScanner.videoExtensions.contains(ext)
+    }
 }
 
 public struct PhotoGroup: Identifiable, Hashable, Sendable {
@@ -49,10 +54,13 @@ public struct PhotoScanner: Sendable {
     /// Se false, i file non scaricati vengono saltati (leggerli li scaricherebbe dal cloud).
     public var includeNotDownloaded = false
     public var includeVideos = true
+    /// Anche documenti, PDF, archivi… (solo copie identiche, confrontate per contenuto).
+    public var includeAllFiles = false
 
-    public init(includeNotDownloaded: Bool = false, includeVideos: Bool = true) {
+    public init(includeNotDownloaded: Bool = false, includeVideos: Bool = true, includeAllFiles: Bool = false) {
         self.includeNotDownloaded = includeNotDownloaded
         self.includeVideos = includeVideos
+        self.includeAllFiles = includeAllFiles
     }
 
     // MARK: - Lettura
@@ -71,7 +79,8 @@ public struct PhotoScanner: Sendable {
             if isCancelled() { break }
             let ext = url.pathExtension.lowercased()
             let isVideo = Self.videoExtensions.contains(ext)
-            guard Self.imageExtensions.contains(ext) || (includeVideos && isVideo),
+            let isImage = Self.imageExtensions.contains(ext)
+            guard isImage || (includeVideos && isVideo) || (includeAllFiles && !isVideo),
                   let v = try? url.resourceValues(forKeys: Set(keys)), v.isRegularFile == true,
                   !policy.isProtected(url) else { continue }
             let size = Int64(v.fileSize ?? 0)
@@ -81,7 +90,10 @@ public struct PhotoScanner: Sendable {
                 result.notDownloadedBytes += size
                 continue
             }
-            result.items.append(Self.read(url, bytes: size, created: v.creationDate, isVideo: isVideo))
+            result.items.append(isImage || isVideo
+                ? Self.read(url, bytes: size, created: v.creationDate, isVideo: isVideo)
+                : PhotoItem(url: url, bytes: size, pixels: 0, width: 0, height: 0, date: v.creationDate,
+                            hasCaptureDate: false, visualHash: nil, isVideo: false))
             if result.items.count % 100 == 0 { progress(result.items.count) }
         }
         return result
@@ -240,7 +252,8 @@ public enum PhotoSorter {
     /// Cartella "AAAA/MM mese" di ogni foto; salta quelle già al posto giusto.
     public static func plan(_ items: [PhotoItem], root: URL) -> [PhotoMove] {
         let cal = Calendar(identifier: .gregorian)
-        return items.compactMap { item in
+        // Si riordinano solo foto e video: i documenti restano dove sono.
+        return items.filter(\.isMedia).compactMap { item in
             let folder: String
             if let d = item.date {
                 let y = cal.component(.year, from: d), m = cal.component(.month, from: d)

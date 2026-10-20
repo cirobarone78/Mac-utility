@@ -11,6 +11,7 @@ final class PhotosModel: ObservableObject {
     @Published var tab: Tab = .duplicates
     @Published var includeNotDownloaded = false
     @Published var includeVideos = true
+    @Published var includeAllFiles = false
     @Published var similarity: Double = 6
 
     @Published var scanning = false
@@ -46,7 +47,7 @@ final class PhotosModel: ObservableObject {
         groups = []
         moves = []
         selected = []
-        let opts = (includeNotDownloaded, includeVideos, Int(similarity))
+        let opts = (includeNotDownloaded, includeVideos, Int(similarity), includeAllFiles)
         let box = WeakRef(self)
         task = Task {
             let (result, found) = await Self.run(folder, policy: policy, options: opts) { n in
@@ -63,9 +64,9 @@ final class PhotosModel: ObservableObject {
         }
     }
 
-    nonisolated static func run(_ folder: URL, policy: SafetyPolicy, options: (Bool, Bool, Int),
+    nonisolated static func run(_ folder: URL, policy: SafetyPolicy, options: (Bool, Bool, Int, Bool),
                                 progress: @escaping @Sendable (Int) -> Void) async -> (PhotoScanResult, [PhotoGroup]) {
-        let scanner = PhotoScanner(includeNotDownloaded: options.0, includeVideos: options.1)
+        let scanner = PhotoScanner(includeNotDownloaded: options.0, includeVideos: options.1, includeAllFiles: options.3)
         let result = scanner.scan(folder, policy: policy, progress: progress, isCancelled: { Task.isCancelled })
         let groups = PhotoScanner.groups(result.items, similarity: options.2, isCancelled: { Task.isCancelled })
         return (result, groups)
@@ -130,7 +131,7 @@ struct PhotosView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ModuleHeader(module: .photos,
-                         subtitle: "Doppioni e foto simili in iCloud Drive, Google Drive o in qualsiasi cartella. Riordino per anno e mese.")
+                         subtitle: "Doppioni di foto, video e documenti in iCloud Drive, Google Drive o in qualsiasi cartella. Riordino per anno e mese.")
             if model.useLibrary {
                 sourceMenu.padding(.horizontal, 20).padding(.bottom, 4)
                 PhotoLibraryPanel()
@@ -176,7 +177,9 @@ struct PhotosView: View {
                 }
             }
             HStack(spacing: 18) {
-                Toggle("Includi i video", isOn: $model.includeVideos)
+                Toggle("Video", isOn: $model.includeVideos)
+                Toggle("Anche documenti e altri file", isOn: $model.includeAllFiles)
+                    .help("PDF, documenti, archivi…: cerca le copie identiche (stesso contenuto, anche con nome diverso).")
                 Toggle("Includi anche le foto non scaricate sul Mac", isOn: $model.includeNotDownloaded)
                     .help("Leggerle le scarica dal cloud: servono tempo e spazio libero.")
                 if model.tab == .duplicates {
@@ -242,7 +245,8 @@ struct PhotosView: View {
         VStack(alignment: .leading, spacing: 6) {
             let exact = model.groups.filter { $0.kind == .exact }
             let similar = model.groups.filter { $0.kind == .similar }
-            Text("\(scan.items.count) foto e video analizzati · \(exact.count) gruppi di copie identiche · \(similar.count) gruppi di foto simili")
+            let docs = scan.items.filter { !$0.isMedia }.count
+            Text("\(scan.items.count - docs) foto e video\(docs > 0 ? " e \(docs) altri file" : "") analizzati · \(exact.count) gruppi di copie identiche · \(similar.count) gruppi di foto simili")
                 .font(.callout)
             if !scan.notDownloaded.isEmpty {
                 Label("\(scan.notDownloaded.count) foto (\(Bytes.format(scan.notDownloadedBytes))) sono solo nel cloud e non sono state analizzate. Per includerle attiva «Includi anche le foto non scaricate»: verranno scaricate sul Mac.",
@@ -374,7 +378,7 @@ private struct PhotoTile: View {
                         Image(nsImage: image).resizable().scaledToFill()
                     } else {
                         Rectangle().fill(.quaternary)
-                            .overlay(Image(systemName: item.isVideo ? "video" : "photo").foregroundStyle(.secondary))
+                            .overlay(Image(systemName: item.isVideo ? "video" : (item.isMedia ? "photo" : "doc")).foregroundStyle(.secondary))
                     }
                 }
                 .frame(width: 150, height: 110)
@@ -391,6 +395,7 @@ private struct PhotoTile: View {
             }
             Text(item.url.lastPathComponent).font(.caption).lineLimit(1).truncationMode(.middle)
             Text(details).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            Text(folderHint).font(.caption2).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.head)
             if isBest { Text("consigliata da tenere").font(.caption2.bold()).foregroundStyle(Brand.accent) }
         }
         .frame(width: 150)
@@ -401,6 +406,12 @@ private struct PhotoTile: View {
             Button("Mostra nel Finder") { Finder.reveal(item.url) }
         }
         .task(id: item.url) { image = await Self.thumbnail(item.url) }
+    }
+
+    /// La cartella in cui si trova: tra copie identiche è ciò che le distingue.
+    private var folderHint: String {
+        let parent = item.url.deletingLastPathComponent()
+        return "in " + parent.lastPathComponent
     }
 
     private var details: String {

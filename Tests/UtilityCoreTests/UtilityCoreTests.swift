@@ -400,3 +400,28 @@ final class WhatsAppScannerTests: XCTestCase {
         XCTAssertEqual(r.duplicates.count, 1)
     }
 }
+
+final class AllFilesDuplicatesTests: XCTestCase {
+    func testDocumentsAndVideosFoundAsExactCopies() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("all-" + UUID().uuidString)
+        defer { try? fm.removeItem(at: dir) }
+        try fm.createDirectory(at: dir.appendingPathComponent("sub"), withIntermediateDirectories: true)
+        let pdf = Data(repeating: 3, count: 50_000), video = Data(repeating: 9, count: 70_000)
+        try pdf.write(to: dir.appendingPathComponent("contratto.pdf"))
+        try pdf.write(to: dir.appendingPathComponent("sub/contratto copia.pdf"))
+        try video.write(to: dir.appendingPathComponent("vacanza.mov"))
+        try video.write(to: dir.appendingPathComponent("sub/vacanza 2.mov"))
+        let policy = SafetyPolicy(neverTouchPaths: [], neverTouchNames: [], allowedPaths: [])
+
+        let mediaOnly = PhotoScanner().scan(dir, policy: policy)
+        XCTAssertEqual(mediaOnly.items.count, 2)                       // solo i video
+        let all = PhotoScanner(includeAllFiles: true).scan(dir, policy: policy)
+        XCTAssertEqual(all.items.count, 4)
+        let groups = PhotoScanner.groups(all.items)
+        XCTAssertEqual(groups.count, 2)
+        XCTAssertTrue(groups.allSatisfy { $0.kind == .exact })
+        // Il riordino per data ignora i documenti.
+        XCTAssertTrue(PhotoSorter.plan(all.items, root: dir).allSatisfy(\.item.isMedia))
+    }
+}

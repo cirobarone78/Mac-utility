@@ -49,7 +49,8 @@ final class FoldersModel: ObservableObject {
 
     nonisolated static func run(_ folder: URL, progress: @escaping @Sendable (Int) -> Void) async -> (PhotoScanResult, [PhotoGroup]) {
         let policy = SafetyPolicy(neverTouchPaths: [], neverTouchNames: [".git"], allowedPaths: [])
-        let r = PhotoScanner().scan(folder, policy: policy, progress: progress, isCancelled: { Task.isCancelled })
+        let r = PhotoScanner(includeAllFiles: true).scan(folder, policy: policy, progress: progress,
+                                                         isCancelled: { Task.isCancelled })
         return (r, PhotoScanner.groups(r.items, isCancelled: { Task.isCancelled }))
     }
 
@@ -145,7 +146,7 @@ struct FoldersScreen: View {
             List {
                 Section {
                     if let r = model.result {
-                        Text("\(r.items.count) foto · \(model.groups.count) gruppi di doppioni")
+                        Text("\(r.items.count) file · \(model.groups.count) gruppi di doppioni")
                             .font(.footnote)
                         if !r.notDownloaded.isEmpty {
                             Text("\(r.notDownloaded.count) foto sono solo in iCloud e non sono state analizzate.")
