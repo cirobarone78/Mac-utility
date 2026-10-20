@@ -28,6 +28,7 @@ struct ProcessRow: Identifiable, Sendable {
 /// Ogni lettura avviene fuori dal thread principale, così l'interfaccia non si blocca mai.
 @MainActor
 final class SystemMonitor: ObservableObject {
+    static let shared = SystemMonitor()
     @Published private(set) var snapshot = SystemSnapshot()
     private var loop: Task<Void, Never>?
     private var lastTicks: CPUTicks?

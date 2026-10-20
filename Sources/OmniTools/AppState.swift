@@ -61,6 +61,7 @@ enum Module: String, CaseIterable, Identifiable {
 
 @MainActor
 final class AppState: ObservableObject {
+    static let shared = AppState()
     @Published var policy: SafetyPolicy = SafetyPolicy.load()
     @Published var selection: Module? = .dashboard
 

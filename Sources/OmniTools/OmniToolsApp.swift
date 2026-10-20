@@ -10,37 +10,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.applicationIconImage = icon
         }
         NSApp.activate(ignoringOtherApps: true)
+        Task { @MainActor in SystemMonitor.shared.start() }
     }
 
-    /// Con l'icona nella barra dei menu attiva, chiudere la finestra non chiude l'app.
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        !(UserDefaults.standard.object(forKey: "menubar.enabled") as? Bool ?? true)
-    }
+    /// L'icona nella barra dei menu resta attiva: chiudere la finestra non chiude l'app.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 }
 
+/// La struttura dell'app non osserva nulla che cambi spesso (monitor, preferenze):
+/// se lo facesse, SwiftUI ricostruirebbe finestra e barra dei menu a ogni aggiornamento.
 @main
 struct OmniToolsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @StateObject private var state = AppState()
-    @StateObject private var monitor = SystemMonitor()
-    @AppStorage("menubar.enabled") private var menuBarEnabled = true
 
     var body: some Scene {
         WindowGroup(Brand.name, id: "main") {
             ContentView()
-                .environmentObject(state)
-                .environmentObject(monitor)
-                .onAppear { monitor.start() }
+                .environmentObject(AppState.shared)
+                .environmentObject(SystemMonitor.shared)
                 .frame(minWidth: 960, minHeight: 620)
                 .tint(Brand.accent)
         }
 
-        MenuBarExtra(isInserted: $menuBarEnabled) {
-            MenuBarPanel(monitor: monitor)
-                .environmentObject(state)
+        MenuBarExtra {
+            MenuBarPanel()
+                .environmentObject(AppState.shared)
+                .environmentObject(SystemMonitor.shared)
                 .tint(Brand.accent)
         } label: {
-            MenuBarLabel(monitor: monitor)
+            MenuBarLabel()
         }
         .menuBarExtraStyle(.window)
     }

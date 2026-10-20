@@ -4,7 +4,6 @@ import UtilityCore
 struct RulesView: View {
     @EnvironmentObject var state: AppState
     @State private var newName = ""
-    @AppStorage("menubar.enabled") private var menuBarEnabled = true
     @AppStorage("menubar.showFree") private var showFree = false
 
     var body: some View {
@@ -60,9 +59,7 @@ struct RulesView: View {
                 }
 
                 Section("Barra dei menu") {
-                    Toggle("Mostra l'icona di OmniTools nella barra dei menu", isOn: $menuBarEnabled)
                     Toggle("Mostra lo spazio libero accanto all'icona", isOn: $showFree)
-                        .disabled(!menuBarEnabled)
                 }
 
                 Section("File") {

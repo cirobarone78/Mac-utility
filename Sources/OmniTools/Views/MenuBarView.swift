@@ -4,7 +4,7 @@ import UtilityCore
 
 /// Icona della barra dei menu: monocromatica ("template"), macOS la colora secondo il tema.
 struct MenuBarLabel: View {
-    @ObservedObject var monitor: SystemMonitor
+    @ObservedObject private var monitor = SystemMonitor.shared
     @AppStorage("menubar.showFree") private var showFree = false
 
     var body: some View {
@@ -14,7 +14,6 @@ struct MenuBarLabel: View {
                 Text(Bytes.format(monitor.snapshot.diskFree)).monospacedDigit()
             }
         }
-        .onAppear { monitor.start() }
     }
 
     static let icon: NSImage = {
@@ -54,7 +53,7 @@ final class QuickCleanModel: ObservableObject {
 /// Il pannello che si apre cliccando l'icona.
 struct MenuBarPanel: View {
     @EnvironmentObject var state: AppState
-    @ObservedObject var monitor: SystemMonitor
+    @EnvironmentObject var monitor: SystemMonitor
     @StateObject private var quick = QuickCleanModel()
     @Environment(\.openWindow) private var openWindow
     @AppStorage("menubar.showFree") private var showFree = false
@@ -102,7 +101,6 @@ struct MenuBarPanel: View {
         }
         .padding(16)
         .frame(width: 300)
-        .onAppear { monitor.start() }
     }
 
     @ViewBuilder
