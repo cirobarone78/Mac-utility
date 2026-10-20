@@ -29,7 +29,14 @@ public struct CleanupCategory: Identifiable, Hashable, Sendable {
 public struct CleanupFinding: Identifiable, Hashable, Sendable {
     public let category: CleanupCategory
     public let item: DiskItem
+    /// Spiegazione della voce e rischio specifico.
+    public let info: CacheInfo
     public var id: URL { item.url }
+
+    /// Il rischio più prudente tra quello della categoria e quello della voce.
+    public var risk: CleanupCategory.Risk {
+        category.risk == .review || info.risk == .review ? .review : .safe
+    }
 }
 
 public enum CleanupCatalog {
@@ -69,6 +76,7 @@ public enum CleanupCatalog {
                             policy: SafetyPolicy,
                             home: String = NSHomeDirectory(),
                             now: Date = Date(),
+                            appName: (String) -> String? = { _ in nil },
                             isCancelled: () -> Bool = { false }) -> [CleanupFinding] {
         let scanner = DiskScanner()
         var out: [CleanupFinding] = []
@@ -82,7 +90,9 @@ public enum CleanupCatalog {
                         guard let m = item.modified,
                               now.timeIntervalSince(m) > Double(days) * 86_400 else { continue }
                     }
-                    out.append(CleanupFinding(category: cat, item: item))
+                    let info = CacheKnowledge.info(for: item, category: cat, appName: appName)
+                    if info.neverPropose { continue }
+                    out.append(CleanupFinding(category: cat, item: item, info: info))
                 }
             }
         }

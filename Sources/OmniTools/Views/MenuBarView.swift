@@ -38,7 +38,9 @@ final class QuickCleanModel: ObservableObject {
         scanning = true
         result = nil
         Task {
+            // Solo le voci sicure, senza quelle che chiedono un controllo (es. Playwright, Spotify).
             findings = await CleanupModel.scan(CleanupCatalog.standard.filter { $0.risk == .safe }, policy: policy)
+                .filter { $0.risk == .safe }
             scanning = false
         }
     }

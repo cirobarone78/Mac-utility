@@ -14,7 +14,7 @@
 |---|---|
 | Panoramica (disco, memoria, CPU, batteria, azioni rapide) | fatto |
 | Analisi spazio (cartelle per dimensione, navigazione, file grandi) | fatto |
-| Pulizia disco (cache, log, Download vecchi, Xcode, simulatori, Gradle, npm) | fatto |
+| Pulizia disco (cache, log, Download vecchi, Xcode, simulatori, Gradle, npm), con spiegazione di ogni voce, avviso app aperte e contenuto delle sottocartelle | fatto |
 | Duplicati (dimensione → impronta parziale → SHA-256; una copia resta sempre) | fatto |
 | Stato del sistema (uptime, temperatura, processi più pesanti) | fatto |
 | Elementi all'avvio (LaunchAgents/Daemons, sola lettura) | fatto |

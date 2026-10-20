@@ -230,3 +230,29 @@ final class AIAdvisorTests: XCTestCase {
         XCTAssertEqual(removals.map(\.url), [b.url])
     }
 }
+
+final class CacheKnowledgeTests: XCTestCase {
+    let caches = CleanupCatalog.standard.first { $0.id == "user-caches" }!
+
+    private func info(_ name: String) -> CacheInfo {
+        CacheKnowledge.info(for: DiskItem(url: URL(fileURLWithPath: "/Users/x/Library/Caches/\(name)"),
+                                          bytes: 1, isDirectory: true), category: caches)
+    }
+
+    func testKnownEntries() {
+        XCTAssertTrue(info("Google").title.contains("Chrome"))
+        XCTAssertEqual(info("Google").bundleIDs, ["com.google.Chrome"])
+        XCTAssertEqual(info("ms-playwright").risk, .review)
+        XCTAssertTrue(info("com.apple.bird").neverPropose)
+        XCTAssertTrue(info("com.apple.parsecd").title.contains("Spotlight"))
+    }
+
+    func testFallbacks() {
+        XCTAssertTrue(info("com.apple.qualcosa").title.contains("qualcosa"))
+        XCTAssertEqual(info("CartellaIgnota").risk, .safe)
+        let derived = CleanupCatalog.standard.first { $0.id == "xcode-derived" }!
+        let d = CacheKnowledge.info(for: DiskItem(url: URL(fileURLWithPath: "/x/OmniTools-abcdef"), bytes: 1, isDirectory: true),
+                                    category: derived)
+        XCTAssertTrue(d.title.contains("«OmniTools»"))
+    }
+}
