@@ -20,7 +20,8 @@
 | Elementi all'avvio (LaunchAgents/Daemons, sola lettura) | fatto |
 | Regole di sicurezza (modificabili dall'app) + registro | fatto |
 | Foto e cloud: doppioni identici e foto simili (impronta visiva) e riordino per anno/mese in iCloud Drive, Google Drive o qualsiasi cartella, con anteprime | fatto |
-| Foto (libreria di iCloud Foto) tramite PhotoKit: foto simili, eliminazione in «Eliminati di recente» | prossimo |
+| Libreria di Foto (iCloud Foto) tramite PhotoKit: stessa foto e foto simili, album «da controllare» o «Eliminati di recente» | fatto |
+| WhatsApp: spazio occupato dai media, doppioni, file grandi | prossimo |
 | Cronologia con «Ripristina»: ogni pulizia, eliminazione di duplicati e riordino torna com'era in un clic (anche dal Cestino) | fatto |
 | Icona nella barra dei menu (disco, memoria, CPU, batteria, pulizia rapida) | fatto |
 | Riordina cartelle (per argomento, tipo o mese; file inutili; annulla) | fatto (v0.2) |

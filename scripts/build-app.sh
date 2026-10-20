@@ -36,6 +36,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSHumanReadableCopyright</key><string>OmniTools</string>
+  <key>NSPhotoLibraryUsageDescription</key><string>OmniTools legge le miniature della libreria di Foto per trovare doppioni e foto simili. Nessuna foto viene eliminata senza la tua conferma.</string>
   <key>NSAppleEventsUsageDescription</key><string>OmniTools chiede al Finder di spostare nel Cestino (e rimettere a posto) i file che macOS non gli permette di spostare da solo, come quelli di iCloud Drive.</string>
 </dict>
 </plist>

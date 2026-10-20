@@ -343,3 +343,35 @@ final class PhotoAndCloudTests: XCTestCase {
         XCTAssertTrue(PhotoSorter.plan([already], root: URL(fileURLWithPath: "/tmp/root")).isEmpty)
     }
 }
+
+final class PhotoLibraryGroupingTests: XCTestCase {
+    private func photo(_ id: String, hash: UInt64, w: Int = 4032, h: Int = 3024, at seconds: Double = 0,
+                       favorite: Bool = false) -> LibraryPhoto {
+        LibraryPhoto(id: id, width: w, height: h, date: Date(timeIntervalSince1970: 1_700_000_000 + seconds),
+                     isFavorite: favorite, isScreenshot: false, isEdited: false, hash: hash)
+    }
+
+    func testSamePhotoVersusSimilar() {
+        let base: UInt64 = 0xA5A5_5A5A_F0F0_0F0F
+        let groups = PhotoLibraryScanner.groups([
+            photo("orig", hash: base),
+            photo("import-doppio", hash: base),                                 // stessa foto importata due volte
+            photo("whatsapp", hash: base ^ 0b1111, w: 1600, h: 1200, at: 3600), // copia ricompressa: simile
+            photo("altra", hash: ~base, at: 10),
+        ], similarity: 6)
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].kind, .similar)           // il gruppo contiene anche la copia di WhatsApp
+        XCTAssertEqual(groups[0].photos.count, 3)
+
+        let exact = PhotoLibraryScanner.groups([photo("a", hash: base), photo("b", hash: base)], similarity: 6)
+        XCTAssertEqual(exact.first?.kind, .exact)
+    }
+
+    func testFavoriteIsKept() {
+        let base: UInt64 = 0xA5A5_5A5A_F0F0_0F0F
+        let g = PhotoLibraryScanner.groups([photo("grande", hash: base),
+                                            photo("preferita", hash: base, w: 2000, h: 1500, favorite: true)],
+                                           similarity: 6)
+        XCTAssertEqual(g.first?.photos.first?.id, "preferita")
+    }
+}

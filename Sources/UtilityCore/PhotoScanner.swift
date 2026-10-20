@@ -132,6 +132,10 @@ public struct PhotoScanner: Sendable {
             kCGImageSourceThumbnailMaxPixelSize: 64,
         ]
         guard let thumb = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
+        return dHash(thumb)
+    }
+
+    public static func dHash(_ thumb: CGImage) -> UInt64? {
         var pixels = [UInt8](repeating: 0, count: 9 * 8)
         let drawn: Bool = pixels.withUnsafeMutableBytes { buf in
             guard let ctx = CGContext(data: buf.baseAddress, width: 9, height: 8, bitsPerComponent: 8,
@@ -175,31 +179,41 @@ public struct PhotoScanner: Sendable {
         // è sempre simile anche quando il contenuto è diverso.
         let candidates = items.filter {
             guard !used.contains($0.url), let h = $0.visualHash else { return false }
-            return (6...58).contains(h.nonzeroBitCount)
+            return isInformative(h)
         }
-        let hashes = candidates.map { $0.visualHash! }
-        // Proporzioni (larghezza/altezza): una foto verticale e una orizzontale non sono "la stessa".
-        let ratios = candidates.map { $0.height > 0 ? Double($0.width) / Double($0.height) : 0 }
-        var parent = Array(candidates.indices)
-        func find(_ i: Int) -> Int {
-            var i = i
-            while parent[i] != i { parent[i] = parent[parent[i]]; i = parent[i] }
-            return i
-        }
-        for i in candidates.indices {
-            if i % 500 == 0 && isCancelled() { return groups }
-            for j in (i + 1)..<candidates.count
-            where (hashes[i] ^ hashes[j]).nonzeroBitCount <= similarity && abs(ratios[i] - ratios[j]) < 0.03 {
-                let a = find(i), b = find(j)
-                if a != b { parent[b] = a }
-            }
-        }
-        let clusters = Dictionary(grouping: candidates.indices, by: find).values.filter { $0.count > 1 }
+        let clusters = cluster(hashes: candidates.map { $0.visualHash! },
+                               ratios: candidates.map { $0.height > 0 ? Double($0.width) / Double($0.height) : 0 },
+                               similarity: similarity, isCancelled: isCancelled)
         for c in clusters {
             groups.append(PhotoGroup(kind: .similar, items: c.map { candidates[$0] }.sorted(by: better)))
         }
         return groups.sorted { $0.wasted > $1.wasted }
     }
+
+    /// Raggruppa gli elementi con impronte vicine e stesse proporzioni (una foto verticale
+    /// e una orizzontale non sono "la stessa"). Restituisce gli indici di ogni gruppo.
+    public static func cluster(hashes: [UInt64], ratios: [Double], similarity: Int,
+                               isCancelled: () -> Bool = { false }) -> [[Int]] {
+        var parent = Array(hashes.indices)
+        func find(_ i: Int) -> Int {
+            var i = i
+            while parent[i] != i { parent[i] = parent[parent[i]]; i = parent[i] }
+            return i
+        }
+        for i in hashes.indices {
+            if i % 500 == 0 && isCancelled() { return [] }
+            for j in (i + 1)..<hashes.count
+            where (hashes[i] ^ hashes[j]).nonzeroBitCount <= similarity && abs(ratios[i] - ratios[j]) < 0.03 {
+                let a = find(i), b = find(j)
+                if a != b { parent[b] = a }
+            }
+        }
+        return Dictionary(grouping: hashes.indices, by: find).values.filter { $0.count > 1 }.map { $0.sorted() }
+    }
+
+    /// Esclude immagini quasi uniformi (pagine bianche, schermate nere): la loro impronta
+    /// assomiglia a tutte le altre uniformi anche quando il contenuto è diverso.
+    public static func isInformative(_ hash: UInt64) -> Bool { (6...58).contains(hash.nonzeroBitCount) }
 
     /// Quale tenere: più pixel, poi file più grande, poi con data di scatto, poi nome senza "copia"/"(1)".
     static func better(_ a: PhotoItem, _ b: PhotoItem) -> Bool {

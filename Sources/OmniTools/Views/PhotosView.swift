@@ -21,11 +21,14 @@ final class PhotosModel: ObservableObject {
     @Published var moves: [PhotoMove] = []
     @Published var message: String?
     @Published var lastOperationID: String?
+    /// true = libreria dell'app Foto invece di una cartella.
+    @Published var useLibrary = false
     private var task: Task<Void, Never>?
 
     init() { folder = locations.first?.url }
 
     var folderName: String {
+        if useLibrary { return "Libreria di Foto (iCloud Foto)" }
         guard let folder else { return "Nessuna cartella" }
         return locations.first { $0.url == folder }?.name ?? Finder.short(folder)
     }
@@ -128,9 +131,14 @@ struct PhotosView: View {
         VStack(alignment: .leading, spacing: 0) {
             ModuleHeader(module: .photos,
                          subtitle: "Doppioni e foto simili in iCloud Drive, Google Drive o in qualsiasi cartella. Riordino per anno e mese.")
-            controls
-            Divider()
-            content
+            if model.useLibrary {
+                sourceMenu.padding(.horizontal, 20).padding(.bottom, 4)
+                PhotoLibraryPanel()
+            } else {
+                controls
+                Divider()
+                content
+            }
         }
         .confirmationDialog("Spostare nel Cestino \(model.selected.count) foto?", isPresented: $confirmTrash) {
             Button("Sposta nel Cestino (\(Bytes.format(model.selectedBytes)))", role: .destructive) {
@@ -153,18 +161,7 @@ struct PhotosView: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Menu {
-                    ForEach(model.locations) { loc in
-                        Button(loc.name) { model.folder = loc.url; model.groups = []; model.moves = [] }
-                    }
-                    Divider()
-                    Button("Altra cartella…") {
-                        if let u = Finder.chooseFolder(start: model.folder) { model.folder = u; model.groups = [] }
-                    }
-                } label: {
-                    Label(model.folderName, systemImage: model.isCloud ? "icloud" : "folder")
-                }
-                .frame(maxWidth: 380)
+                sourceMenu
                 Spacer()
                 Picker("", selection: $model.tab) {
                     ForEach(PhotosModel.Tab.allCases, id: \.self) { Text($0.rawValue) }
@@ -194,6 +191,25 @@ struct PhotosView: View {
             .font(.callout)
         }
         .padding(.horizontal, 20).padding(.bottom, 10)
+    }
+
+    private var sourceMenu: some View {
+        Menu {
+            Button("Libreria di Foto (iCloud Foto)") { model.useLibrary = true }
+            Divider()
+            ForEach(model.locations) { loc in
+                Button(loc.name) { model.useLibrary = false; model.folder = loc.url; model.groups = []; model.moves = [] }
+            }
+            Divider()
+            Button("Altra cartella…") {
+                if let u = Finder.chooseFolder(start: model.folder) {
+                    model.useLibrary = false; model.folder = u; model.groups = []
+                }
+            }
+        } label: {
+            Label(model.folderName, systemImage: model.useLibrary ? "photo.stack" : (model.isCloud ? "icloud" : "folder"))
+        }
+        .frame(maxWidth: 380)
     }
 
     @ViewBuilder
