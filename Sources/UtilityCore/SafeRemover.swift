@@ -72,7 +72,7 @@ public enum Journal {
                + r.skipped.map { "SALTATO\t\($0.url.path)\t\($0.reason)" })
     }
 
-    static func append(lines: [String]) {
+    public static func append(lines: [String]) {
         let stamp = ISO8601DateFormatter().string(from: Date())
         let stamped = lines.map { "\(stamp)\t\($0)" }
         guard !stamped.isEmpty, let data = (stamped.joined(separator: "\n") + "\n").data(using: .utf8) else { return }
