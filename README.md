@@ -1,6 +1,6 @@
 # OmniTools
 
-Una cassetta degli attrezzi per macOS, in stile Norton Utilities ma su misura: pulizia, analisi dello spazio, duplicati, stato del sistema, elementi all'avvio. In arrivo: riordino delle cartelle e un assistente AI che propone cosa eliminare (e chiede sempre prima).
+Una cassetta degli attrezzi per macOS, in stile Norton Utilities ma su misura: pulizia, analisi dello spazio, riordino delle cartelle, duplicati, stato del sistema, elementi all'avvio e un assistente AI (Claude) che propone cosa spostare o eliminare e chiede sempre prima.
 
 **Regola d'oro: l'app non cancella mai nulla in modo definitivo.** Ogni rimozione passa per il Cestino, dopo una tua conferma, e viene scritta nel registro.
 
@@ -15,6 +15,10 @@ open Package.swift      # si apre in Xcode: schema "OmniTools", poi ⌘R
 ```
 
 Oppure da Terminale: `swift run OmniTools` (finestra) e `swift test` (test del nucleo).
+
+### Assistente AI
+
+Serve una chiave API di Anthropic (console.anthropic.com → API Keys): la si inserisce nella schermata «Assistente AI» e resta nel Portachiavi del Mac. In alternativa, la variabile `ANTHROPIC_API_KEY` impostata nello schema di Xcode. All'AI arrivano solo i metadati dei file (nome, tipo, dimensione, date), mai il contenuto.
 
 ### Accesso completo al disco
 

@@ -9,7 +9,7 @@ struct ContentView: View {
                 Section("Strumenti") {
                     ForEach([Module.dashboard, .space, .cleanup, .organize, .duplicates, .system, .startup]) { row($0) }
                 }
-                Section("In arrivo") {
+                Section("Intelligenza artificiale") {
                     row(.assistant)
                 }
                 Section {
@@ -27,7 +27,7 @@ struct ContentView: View {
                 case .system: SystemView()
                 case .startup: StartupView()
                 case .organize: OrganizeView()
-                case .assistant: ComingSoonView(module: .assistant)
+                case .assistant: AssistantView()
                 case .rules: RulesView()
                 }
             }

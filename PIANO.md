@@ -20,7 +20,7 @@
 | Elementi all'avvio (LaunchAgents/Daemons, sola lettura) | fatto |
 | Regole di sicurezza (modificabili dall'app) + registro | fatto |
 | Riordina cartelle (per argomento, tipo o mese; file inutili; annulla) | fatto (v0.2) |
-| Assistente AI | v0.3 |
+| Assistente AI (Claude: proposte di spostamento ed eliminazione, approvate una per una) | fatto (v0.3) |
 
 ## v0.2 – Riordino cartelle (fatto)
 
@@ -34,13 +34,15 @@ Si apre una cartella e si guardano **solo i file sfusi** (le sottocartelle esist
 
 Limite: senza AI l'argomento si ricava solo dai nomi dei file. Con la v0.3 l'assistente potrà raggruppare anche nomi diversi con lo stesso significato («preventivo idraulico» e «offerta caldaia» → *Casa*) e proporre nomi di cartella migliori.
 
-## v0.3 – Assistente AI (Claude)
+## v0.3 – Assistente AI (fatto)
 
-- Scegli una cartella. L'app prepara un elenco con percorso relativo, tipo, dimensione, data di creazione, data di ultima apertura e numero di copie. **Non legge il contenuto**, salvo un interruttore esplicito per i singoli file.
-- L'AI restituisce proposte strutturate: *elimina / sposta in… / tieni*, ciascuna con un motivo («installer già usato», «copia di …», «export vecchio di 2 anni»).
-- Le proposte compaiono come la Pulizia: caselle da spuntare, niente preselezionato per le voci rischiose, conferma finale, Cestino.
-- Le regole di sicurezza vengono applicate **prima** di inviare i dati e **di nuovo** prima di agire: un file protetto non può essere proposto né toccato.
-- La chiave API sta nel Portachiavi di macOS. Un tetto di spesa per ogni analisi.
+- Scegli una cartella. L'app descrive i file sfusi con **solo metadati**: nome, tipo, dimensione, data di creazione e di ultima apertura, più gli indizi dell'analisi locale («copia identica di…», «file vuoto»). Il contenuto non viene mai letto. Il pulsante **«Vedi cosa invio»** mostra il testo esatto.
+- I file protetti dalle regole **non vengono inviati** e, se comparissero comunque in una proposta, vengono scartati prima di agire.
+- Claude risponde in JSON vincolato a uno schema (`output_config.format`). Per ogni file propone *sposta in…*, *Cestino* o *lascia*, con un motivo e un livello di fiducia. Raggruppa per significato e non solo per nome («preventivo idraulico» + «offerta caldaia» → *Casa*).
+- **Nulla è preselezionato per il Cestino.** C'è un pulsante per spuntare solo le eliminazioni a fiducia alta. Gli spostamenti sono preselezionati ma deselezionabili. Si applica solo dopo conferma, e gli spostamenti si annullano da «Riordina cartelle».
+- **Indicazioni personali** salvate (es. «non eliminare nulla che riguardi OmniNeo»).
+- **Modello**: Claude Opus 5.5 (predefinito), Sonnet 5.5 oppure Haiku 5.5. Con Opus e Sonnet, in caso di rifiuto, il server riprova da solo su un modello alternativo. Il costo stimato è mostrato a fine analisi. Al massimo 400 file per analisi, a gruppi di 120.
+- La chiave API sta nel **Portachiavi di macOS** (oppure nella variabile `ANTHROPIC_API_KEY`).
 
 ## Idee per le versioni successive (da scegliere)
 

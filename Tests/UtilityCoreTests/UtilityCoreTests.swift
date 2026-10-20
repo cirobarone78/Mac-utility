@@ -177,3 +177,56 @@ final class FolderOrganizerTests: XCTestCase {
         XCTAssertEqual(FolderOrganizer.sanitize("../Fatture/2024:"), "-Fatture-2024-")
     }
 }
+
+final class AIAdvisorTests: XCTestCase {
+    private func response(_ text: String, stop: String = "end_turn") -> Data {
+        let json: [String: Any] = [
+            "stop_reason": stop,
+            "content": [["type": "thinking", "thinking": ""], ["type": "text", "text": text]],
+            "usage": ["input_tokens": 1200, "output_tokens": 300],
+        ]
+        return try! JSONSerialization.data(withJSONObject: json)
+    }
+
+    func testParseStructuredReply() throws {
+        let text = #"{"summary":"Download misti","proposals":[{"id":0,"action":"move","folder":"Casa","reason":"preventivo","confidence":"alta"},{"id":1,"action":"trash","folder":"","reason":"installer usato","confidence":"media"}]}"#
+        let reply = try AIAdvisor.parse(response(text))
+        XCTAssertEqual(reply.summary, "Download misti")
+        XCTAssertEqual(reply.proposals.map(\.action), ["move", "trash"])
+        XCTAssertEqual(reply.inputTokens, 1200)
+    }
+
+    func testRefusalAndTruncation() {
+        XCTAssertThrowsError(try AIAdvisor.parse(response("", stop: "refusal")))
+        XCTAssertThrowsError(try AIAdvisor.parse(response("{", stop: "max_tokens")))
+        XCTAssertThrowsError(try AIAdvisor.parse(response("non json")))
+    }
+
+    func testSchemaIsValidJSON() throws {
+        XCTAssertNoThrow(try JSONSerialization.data(withJSONObject: AIAdvisor.schema))
+    }
+
+    func testMessageContainsOnlyMetadata() {
+        let facts = [FileFacts(id: 0, name: "fattura.pdf", kind: "PDF", sizeBytes: 1000,
+                               created: "2026-01-02", lastOpened: nil, hint: nil)]
+        let msg = AIAdvisor.userMessage(folderName: "Download", facts: facts, instructions: "non toccare OmniNeo")
+        XCTAssertTrue(msg.contains("\"name\":\"fattura.pdf\""))
+        XCTAssertTrue(msg.contains("non toccare OmniNeo"))
+    }
+
+    func testApprovedProposalsBecomePlan() {
+        let folder = URL(fileURLWithPath: "/tmp/x")
+        let a = DiskItem(url: folder.appendingPathComponent("a.pdf"), bytes: 1, isDirectory: false)
+        let b = DiskItem(url: folder.appendingPathComponent("b.dmg"), bytes: 2, isDirectory: false)
+        let c = DiskItem(url: folder.appendingPathComponent("c.pdf"), bytes: 3, isDirectory: false)
+        let advice = AIAdvice(folder: folder, proposals: [
+            AIProposal(item: a, action: .move, folder: "Casa", reason: "", confidence: "alta"),
+            AIProposal(item: b, action: .trash, folder: "", reason: "", confidence: "alta"),
+            AIProposal(item: c, action: .move, folder: "Casa", reason: "", confidence: "alta"),
+        ], summary: "", skippedFiles: 0)
+        let (plan, removals) = advice.plan(approved: [a.url, b.url])   // c non approvato
+        XCTAssertEqual(plan.groups.count, 1)
+        XCTAssertEqual(plan.groups[0].files.map(\.url), [a.url])
+        XCTAssertEqual(removals.map(\.url), [b.url])
+    }
+}
