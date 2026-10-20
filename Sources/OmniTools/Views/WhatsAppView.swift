@@ -62,8 +62,12 @@ final class WhatsAppModel: ObservableObject {
             result = r
             scanning = false
             status = ""
-            if r.media.isEmpty {
-                message = "Nessun file trovato. Se WhatsApp ha dei media, dai a OmniTools l'accesso: Impostazioni di Sistema › Privacy e sicurezza › Accesso completo al disco."
+            if r.mediaFolderUnreadable || (r.media.isEmpty && r.deniedFolders > 0) {
+                message = "macOS non permette a OmniTools di leggere i dati di WhatsApp. Apri Impostazioni di Sistema › Privacy e sicurezza › Accesso completo al disco, attiva OmniTools (o aggiungilo con +), poi chiudi e riapri OmniTools."
+            } else if r.media.isEmpty {
+                message = "Nessun media trovato in \(Finder.short(root)). Se in WhatsApp hai foto e video, mandami il risultato di: du -sh ~/Library/Group\\ Containers/*whatsapp*/*"
+            } else if r.deniedFolders > 0 {
+                message = "Attenzione: \(r.deniedFolders) cartelle non leggibili per mancanza di permessi; il totale potrebbe essere incompleto."
             }
         }
     }
@@ -147,6 +151,17 @@ struct WhatsAppView: View {
         VStack(alignment: .leading, spacing: 0) {
             ModuleHeader(module: .whatsapp,
                          subtitle: "Quanto occupano foto, video, vocali e documenti delle chat. Tutto finisce nel Cestino, con «Ripristina».")
+            if let m = model.message, model.result?.media.isEmpty ?? false {
+                Label(m, systemImage: "lock.shield").font(.callout).foregroundStyle(.orange)
+                    .padding(.horizontal, 20).padding(.bottom, 8)
+                HStack {
+                    Button("Apri le impostazioni della privacy") {
+                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
+                    }
+                    Button("Mostra la cartella di WhatsApp") { if let r = model.root { Finder.reveal(r) } }
+                }
+                .padding(.horizontal, 20).padding(.bottom, 8)
+            }
             if model.root == nil {
                 ContentUnavailableView("WhatsApp per Mac non trovata", systemImage: Module.whatsapp.icon,
                                        description: Text("Installa l'app WhatsApp dal Mac App Store e accedi al tuo account."))

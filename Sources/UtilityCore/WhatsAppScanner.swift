@@ -27,6 +27,10 @@ public struct WhatsAppScanResult: Sendable {
     public var media: [WhatsAppMedia] = []
     /// File che sono copie identiche di un altro (si propone di tenere il più vecchio).
     public var duplicates: Set<URL> = []
+    /// Cartelle che macOS non ha lasciato leggere (permesso negato).
+    public var deniedFolders = 0
+    /// La cartella dei media esiste ma non è stato possibile elencarla.
+    public var mediaFolderUnreadable = false
     public var totalBytes: Int64 { media.reduce(0) { $0 + $1.bytes } }
 }
 
@@ -71,9 +75,18 @@ public enum WhatsAppScanner {
         let base = FileManager.default.fileExists(atPath: mediaRoot.path) ? mediaRoot : root
         let baseCount = base.standardizedFileURL.pathComponents.count
 
+        // Se macOS nega l'accesso (dati di un'altra app), lo si scopre provando a elencare la cartella.
+        do {
+            _ = try FileManager.default.contentsOfDirectory(atPath: base.path)
+        } catch {
+            result.mediaFolderUnreadable = true
+            return result
+        }
+
         let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey]
+        var denied = 0
         let e = FileManager.default.enumerator(at: base, includingPropertiesForKeys: keys,
-                                               options: [.skipsHiddenFiles], errorHandler: { _, _ in true })
+                                               options: [.skipsHiddenFiles], errorHandler: { _, _ in denied += 1; return true })
         while let url = e?.nextObject() as? URL {
             if isCancelled() { break }
             guard let kind = kind(of: url),
@@ -85,6 +98,7 @@ public enum WhatsAppScanner {
                                               kind: kind, chatID: chatID, chatName: displayName(chatID, names)))
             if result.media.count % 500 == 0 { progress(result.media.count) }
         }
+        result.deniedFolders = denied
         if findDuplicates { result.duplicates = duplicates(result.media, isCancelled: isCancelled) }
         return result
     }
