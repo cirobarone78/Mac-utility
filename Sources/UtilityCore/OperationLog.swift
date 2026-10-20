@@ -99,6 +99,13 @@ public enum OperationLog {
                                        withIntermediateDirectories: true)
                 try fm.moveItem(atPath: move.to, toPath: move.from)
                 result.restored += 1
+            } catch let error where FinderBridge.isPermissionError(error) {
+                do {
+                    try FinderBridge.moveBack(from: move.to, to: move.from)
+                    result.restored += 1
+                } catch {
+                    result.errors.append("\((move.from as NSString).lastPathComponent): \(error.localizedDescription)")
+                }
             } catch {
                 result.errors.append("\((move.from as NSString).lastPathComponent): \(error.localizedDescription)")
             }

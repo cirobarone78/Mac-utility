@@ -35,6 +35,16 @@ public struct SafeRemover: Sendable {
                 if let dest = inTrash?.path {
                     r.trashMoves.append(.init(from: item.url.path, to: dest))
                 }
+            } catch let error where FinderBridge.isPermissionError(error) {
+                // Es. il Cestino di iCloud Drive: ci pensa il Finder, che ha il permesso.
+                do {
+                    let dest = try FinderBridge.trash(item.url)
+                    r.moved.append(item.url)
+                    r.bytes += item.bytes
+                    if let dest { r.trashMoves.append(.init(from: item.url.path, to: dest)) }
+                } catch {
+                    r.skipped.append((url: item.url, reason: error.localizedDescription))
+                }
             } catch {
                 r.skipped.append((url: item.url, reason: error.localizedDescription))
             }

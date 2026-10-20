@@ -36,12 +36,22 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSHumanReadableCopyright</key><string>OmniTools</string>
+  <key>NSAppleEventsUsageDescription</key><string>OmniTools chiede al Finder di spostare nel Cestino (e rimettere a posto) i file che macOS non gli permette di spostare da solo, come quelli di iCloud Drive.</string>
 </dict>
 </plist>
 PLIST
 
-echo "▸ Firma locale (ad-hoc)…"
-codesign --force --deep --sign - "$APP"
+# Firma: con il certificato "Apple Development" (quello di Xcode) macOS riconosce sempre la
+# stessa app, e i permessi (Accesso completo al disco, Automazione) restano dopo ogni aggiornamento.
+# Senza certificato si usa la firma "ad-hoc": funziona, ma i permessi vanno ridati a ogni build.
+IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 "Apple Development" | sed -E 's/.*"(.*)"/\1/' || true)
+if [[ -n "$IDENTITY" ]]; then
+  echo "▸ Firma con: $IDENTITY"
+  codesign --force --deep --sign "$IDENTITY" "$APP"
+else
+  echo "▸ Firma locale (ad-hoc): nessun certificato Apple Development trovato"
+  codesign --force --deep --sign - "$APP"
+fi
 
 if [[ "${1:-}" == "--install" ]]; then
   echo "▸ Installo in /Applications…"
