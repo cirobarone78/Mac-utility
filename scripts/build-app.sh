@@ -46,9 +46,15 @@ codesign --force --deep --sign - "$APP"
 if [[ "${1:-}" == "--install" ]]; then
   echo "▸ Installo in /Applications…"
   osascript -e 'quit app "OmniTools"' 2>/dev/null || true
+  # Aspetta che la versione vecchia sia davvero chiusa (al massimo 10 secondi), poi la chiude a forza.
+  for _ in $(seq 1 20); do pgrep -x OmniTools >/dev/null || break; sleep 0.5; done
+  pkill -x OmniTools 2>/dev/null || true
   rm -rf /Applications/OmniTools.app
   cp -R "$APP" /Applications/
-  open /Applications/OmniTools.app
+  # Registra la nuova copia presso macOS e aprila (con un secondo tentativo).
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/OmniTools.app 2>/dev/null || true
+  sleep 1
+  open /Applications/OmniTools.app 2>/dev/null || { sleep 2; open /Applications/OmniTools.app; }
   echo "✓ Installata: /Applications/OmniTools.app"
 else
   echo "✓ Pronta: ${APP}  (per installarla: ./scripts/build-app.sh --install)"
