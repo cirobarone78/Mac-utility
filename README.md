@@ -4,17 +4,20 @@ Una cassetta degli attrezzi per macOS, in stile Norton Utilities ma su misura: p
 
 **Regola d'oro: l'app non cancella mai nulla in modo definitivo.** Ogni rimozione passa per il Cestino, dopo una tua conferma, e viene scritta nel registro.
 
-## Avvio
+## Installazione
 
-Serve un Mac con macOS 14 (Sonoma) o successivo e Xcode 15 o successivo.
+Serve un Mac con macOS 14 (Sonoma) o successivo e gli strumenti di sviluppo Apple (Xcode, oppure solo `xcode-select --install`).
 
 ```bash
-git clone https://github.com/cirobarone78/Mac-utility.git
+cd ~/Documents
+git clone -b claude/elegant-clarke-f2mj1a https://github.com/cirobarone78/Mac-utility.git
 cd Mac-utility
-open Package.swift      # si apre in Xcode: schema "OmniTools", poi ⌘R
+./scripts/build-app.sh --install
 ```
 
-Oppure da Terminale: `swift run OmniTools` (finestra) e `swift test` (test del nucleo).
+Lo script compila, crea `OmniTools.app` con la sua icona, la firma localmente, la copia in **Applicazioni** e la apre. Per aggiornarla: `git pull` e di nuovo `./scripts/build-app.sh --install`.
+
+Per sviluppare: `open Package.swift` (si apre in Xcode, schema «OmniTools», poi ⌘R) e `swift test` per i test.
 
 ### Assistente AI
 

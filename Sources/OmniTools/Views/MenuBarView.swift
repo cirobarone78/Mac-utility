@@ -18,7 +18,7 @@ struct MenuBarLabel: View {
     }
 
     static let icon: NSImage = {
-        let image = Bundle.module.image(forResource: "MenuBarIcon")
+        let image = Resources.bundle.image(forResource: "MenuBarIcon")
             ?? NSImage(systemSymbolName: "gauge.with.dots.needle.67percent", accessibilityDescription: nil)!
         image.isTemplate = true
         image.size = NSSize(width: 18, height: 18)
