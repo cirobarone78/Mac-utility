@@ -1,7 +1,11 @@
 import Foundation
 import Photos
-import AppKit
 import CoreGraphics
+#if canImport(AppKit)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// Una foto della libreria di Foto (iCloud Foto), vista tramite PhotoKit.
 public struct LibraryPhoto: Identifiable, Hashable, Sendable {
@@ -67,7 +71,11 @@ public enum PhotoLibraryScanner {
             var cg: CGImage?
             manager.requestImage(for: asset, targetSize: CGSize(width: 64, height: 64),
                                  contentMode: .aspectFit, options: request) { image, _ in
+                #if canImport(AppKit)
                 cg = image?.cgImage(forProposedRect: nil, context: nil, hints: nil)
+                #else
+                cg = image?.cgImage
+                #endif
             }
             guard let cg, let h = PhotoScanner.dHash(cg) else { continue }
             out.append(LibraryPhoto(id: asset.localIdentifier, width: asset.pixelWidth, height: asset.pixelHeight,

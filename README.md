@@ -46,3 +46,13 @@ iconutil -c icns Assets/AppIcon.iconset -o Assets/AppIcon.icns
 File dell'app sul Mac: `~/Library/Application Support/OmniTools/regole.json` (cosa non toccare mai) e `registro.log` (ogni file spostato nel Cestino).
 
 Il piano completo e le idee per le prossime versioni sono in [PIANO.md](PIANO.md).
+
+## App per iPhone
+
+Nella cartella `iOS/`: doppioni e foto simili nel rullino (iCloud Foto) e nelle cartelle di File/iCloud Drive, riordino per anno e mese. Usa lo stesso motore dell'app per Mac (`UtilityCore`).
+
+```bash
+./scripts/ios-project.sh     # installa XcodeGen se manca, genera il progetto e lo apre in Xcode
+```
+
+In Xcode: collega l'iPhone, sceglilo come destinazione in alto e premi ⌘R. La prima volta, sull'iPhone: Impostazioni › Generali › VPN e gestione dispositivi › autorizza lo sviluppatore, e attiva la Modalità sviluppatore se richiesta.

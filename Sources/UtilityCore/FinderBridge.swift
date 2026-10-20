@@ -8,6 +8,7 @@ public enum FinderBridge {
     }
 
     static func run(_ source: String) throws -> String? {
+        #if os(macOS)
         var error: NSDictionary?
         guard let script = NSAppleScript(source: source) else {
             throw CocoaError(.featureUnsupported)
@@ -23,6 +24,9 @@ public enum FinderBridge {
             ])
         }
         return result.stringValue
+        #else
+        throw CocoaError(.featureUnsupported)   // su iPhone non c'è il Finder
+        #endif
     }
 
     /// Sposta nel Cestino tramite il Finder. Restituisce dove è finito il file.

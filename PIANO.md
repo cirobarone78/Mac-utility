@@ -22,6 +22,7 @@
 | Foto e cloud: doppioni identici e foto simili (impronta visiva) e riordino per anno/mese in iCloud Drive, Google Drive o qualsiasi cartella, con anteprime | fatto |
 | Libreria di Foto (iCloud Foto) tramite PhotoKit: stessa foto e foto simili, album «da controllare» o «Eliminati di recente» | fatto |
 | WhatsApp: spazio per tipo e per chat, filtri (data, dimensione, copie identiche), anteprime, Cestino con «Ripristina» | fatto |
+| App per iPhone (iOS/): doppioni e foto simili nel rullino, cartelle di File/iCloud Drive, riordino per data | fatto (0.1) |
 | Cronologia con «Ripristina»: ogni pulizia, eliminazione di duplicati e riordino torna com'era in un clic (anche dal Cestino) | fatto |
 | Icona nella barra dei menu (disco, memoria, CPU, batteria, pulizia rapida) | fatto |
 | Riordina cartelle (per argomento, tipo o mese; file inutili; annulla) | fatto (v0.2) |
