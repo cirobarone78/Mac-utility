@@ -91,7 +91,7 @@ final class PhotosModel: ObservableObject {
         let r = SafeRemover(policy: policy).moveToTrash(items, kind: "Doppioni foto")
         lastOperationID = r.operationID
         message = "\(r.moved.count) foto nel Cestino (\(Bytes.format(r.bytes)))."
-            + (r.skipped.isEmpty ? "" : " Saltate \(r.skipped.count).")
+            + (r.skipped.isEmpty ? "" : " Saltate \(r.skipped.count). Motivo: \(r.skipped[0].reason)")
         let moved = Set(r.moved)
         groups = groups.compactMap { g in
             let rest = g.items.filter { !moved.contains($0.url) }
