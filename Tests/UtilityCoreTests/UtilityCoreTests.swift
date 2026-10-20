@@ -81,3 +81,99 @@ final class CoreScanTests: XCTestCase {
         XCTAssertEqual(items.first?.url.lastPathComponent, "grande")
     }
 }
+
+final class FolderOrganizerTests: XCTestCase {
+    var dir: URL!
+    var records: URL!
+    let noRules = SafetyPolicy(neverTouchPaths: [], neverTouchNames: [])
+
+    override func setUpWithError() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("org-" + UUID().uuidString)
+        dir = base.appendingPathComponent("Download")
+        records = base.appendingPathComponent("riordini")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: dir.deletingLastPathComponent())
+    }
+
+    @discardableResult
+    private func make(_ name: String, _ text: String = "x", age days: Double = 0) throws -> URL {
+        let url = dir.appendingPathComponent(name)
+        try text.data(using: .utf8)!.write(to: url)
+        if days > 0 {
+            try FileManager.default.setAttributes([.creationDate: Date(timeIntervalSinceNow: -days * 86_400),
+                                                   .modificationDate: Date(timeIntervalSinceNow: -days * 86_400)],
+                                                  ofItemAtPath: url.path)
+        }
+        return url
+    }
+
+    func testTokens() {
+        XCTAssertEqual(FolderOrganizer.tokens("Fattura_Enel-2024marzo"), ["fatture", "enel", "2024marzo", "marzo"])
+        XCTAssertTrue(FolderOrganizer.tokens("OmniNeo_logo_v2").contains("omnineo"))
+        XCTAssertEqual(FolderOrganizer.tokens("Schermata 2026-10-01 alle 10.22.33"), ["screenshot"])
+    }
+
+    func testTopicGroupingAndUseless() throws {
+        try make("Fattura_Enel_03.pdf", "a")
+        try make("fattura TIM marzo.pdf", "b")
+        try make("Schermata 2026-10-01 alle 10.22.33.png", "c")
+        try make("Screenshot 2026-09-12.png", "d")
+        try make("OmniNeo_logo.png", "e")
+        try make("omnineo-deploy.zip", "f")
+        try make("budget.xlsx", "g")
+        try make("budget copia.xlsx", "g")          // copia identica
+        try make("vuoto.txt", "")                   // vuoto
+        try make("film.mp4.crdownload", "h")        // download a metà
+        try make("Zoom.dmg", "i", age: 60)          // installer vecchio
+
+        let plan = FolderOrganizer(strategy: .topic).plan(folder: dir, policy: noRules)
+        let names = Dictionary(uniqueKeysWithValues: plan.groups.map { ($0.name, Set($0.files.map { $0.url.lastPathComponent })) })
+        XCTAssertEqual(names["Fatture"], ["Fattura_Enel_03.pdf", "fattura TIM marzo.pdf"])
+        XCTAssertEqual(names["Screenshot"]?.count, 2)
+        XCTAssertEqual(names["OmniNeo"], ["OmniNeo_logo.png", "omnineo-deploy.zip"])
+
+        let useless = Dictionary(uniqueKeysWithValues: plan.removals.map { ($0.item.url.lastPathComponent, $0.risk) })
+        XCTAssertEqual(useless["budget copia.xlsx"], .safe)
+        XCTAssertEqual(useless["vuoto.txt"], .safe)
+        XCTAssertEqual(useless["film.mp4.crdownload"], .safe)
+        XCTAssertEqual(useless["Zoom.dmg"], .review)
+        XCTAssertNil(useless["budget.xlsx"])
+        // Un file proposto come inutile non viene anche spostato.
+        XCTAssertFalse(plan.groups.flatMap(\.files).contains { $0.url.lastPathComponent == "vuoto.txt" })
+    }
+
+    func testApplyAndUndo() throws {
+        try make("Preventivo idraulico.pdf", "a")
+        try make("preventivo-elettricista.pdf", "b")
+        try make("solo.txt", "c")
+        let plan = FolderOrganizer(strategy: .topic).plan(folder: dir, policy: noRules)
+
+        var trashed: [DiskItem] = []
+        let result = FolderOrganizer.apply(plan, removals: [], policy: noRules, recordsFolder: records) { items in
+            trashed = items
+            return SafeRemover.Report()
+        }
+        XCTAssertTrue(trashed.isEmpty)
+        XCTAssertEqual(result.moved, 3)
+        let fm = FileManager.default
+        XCTAssertTrue(fm.fileExists(atPath: dir.appendingPathComponent("Preventivo/Preventivo idraulico.pdf").path))
+        XCTAssertFalse(fm.fileExists(atPath: dir.appendingPathComponent("solo.txt").path))
+
+        let undo = FolderOrganizer.undoLast(recordsFolder: records)
+        XCTAssertEqual(undo?.moved, 3)
+        XCTAssertTrue(fm.fileExists(atPath: dir.appendingPathComponent("Preventivo idraulico.pdf").path))
+        XCTAssertTrue(fm.fileExists(atPath: dir.appendingPathComponent("solo.txt").path))
+        XCTAssertFalse(fm.fileExists(atPath: dir.appendingPathComponent("Preventivo").path))
+    }
+
+    func testNameClash() throws {
+        let sub = dir.appendingPathComponent("PDF")
+        try FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
+        try "old".data(using: .utf8)!.write(to: sub.appendingPathComponent("a.pdf"))
+        XCTAssertEqual(FolderOrganizer.uniqueDestination(for: "a.pdf", in: sub).lastPathComponent, "a 2.pdf")
+        XCTAssertEqual(FolderOrganizer.sanitize("../Fatture/2024:"), "-Fatture-2024-")
+    }
+}

@@ -39,10 +39,14 @@ public enum Journal {
     }
 
     static func append(_ r: SafeRemover.Report) {
+        append(lines: r.moved.map { "CESTINO\t\($0.path)" }
+               + r.skipped.map { "SALTATO\t\($0.url.path)\t\($0.reason)" })
+    }
+
+    static func append(lines: [String]) {
         let stamp = ISO8601DateFormatter().string(from: Date())
-        var lines = r.moved.map { "\(stamp)\tCESTINO\t\($0.path)" }
-        lines += r.skipped.map { "\(stamp)\tSALTATO\t\($0.url.path)\t\($0.reason)" }
-        guard !lines.isEmpty, let data = (lines.joined(separator: "\n") + "\n").data(using: .utf8) else { return }
+        let stamped = lines.map { "\(stamp)\t\($0)" }
+        guard !stamped.isEmpty, let data = (stamped.joined(separator: "\n") + "\n").data(using: .utf8) else { return }
         let url = fileURL
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
                                                  withIntermediateDirectories: true)

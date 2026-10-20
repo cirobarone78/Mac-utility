@@ -19,15 +19,20 @@
 | Stato del sistema (uptime, temperatura, processi più pesanti) | fatto |
 | Elementi all'avvio (LaunchAgents/Daemons, sola lettura) | fatto |
 | Regole di sicurezza (modificabili dall'app) + registro | fatto |
-| Riordina cartelle | v0.2 |
+| Riordina cartelle (per argomento, tipo o mese; file inutili; annulla) | fatto (v0.2) |
 | Assistente AI | v0.3 |
 
-## v0.2 – Riordino cartelle
+## v0.2 – Riordino cartelle (fatto)
 
-- Regole del tipo «in Download: PDF → Documenti/PDF, immagini → Immagini/AAAA-MM, `.dmg` più vecchi di 30 giorni → Cestino».
-- **Anteprima** di tutti gli spostamenti in una tabella (da → a), deselezionabili uno per uno.
-- **Annulla l'ultimo riordino**: ogni spostamento viene salvato nel registro con origine e destinazione.
-- Regole pronte per i tuoi casi: cartella OmniNeo (mettere da parte `.claude/worktrees`, `site_backup_*`, gli zip di deploy vecchi), cartella Download, Scrivania.
+Si apre una cartella e si guardano **solo i file sfusi** (le sottocartelle esistenti non si toccano).
+
+- **Per argomento**: una parola presente nel nome di almeno 2 file diventa una cartella («Fattura_Enel», «fattura TIM» → *Fatture*; «Schermata…» e «Screenshot…» → *Screenshot*; «OmniNeo_logo», «omnineo-deploy» → *OmniNeo*). I sinonimi più comuni sono uniti. Le parole presenti in quasi tutti i file vengono ignorate, perché sono l'argomento della cartella stessa. I file senza argomento vanno per tipo.
+- **Per tipo** (PDF, Immagini, Video, Documenti, Fogli di calcolo, Installer…) o **per mese** (2026-10).
+- **File probabilmente inutili** → Cestino. Preselezionati: copie identiche (si tiene il nome «originale»), file vuoti, download incompleti, file di blocco di Office. Da controllare, non preselezionati: installer più vecchi di 30 giorni, archivi già estratti.
+- **Anteprima modificabile**: puoi rinominare ogni cartella proposta e togliere la spunta a singoli file.
+- **Annulla l'ultimo riordino**: i file tornano al loro posto e le cartelle create, se vuote, vengono tolte (registro in `Application Support/OmniTools/riordini/`). Ciò che è andato nel Cestino si recupera dal Finder.
+
+Limite: senza AI l'argomento si ricava solo dai nomi dei file. Con la v0.3 l'assistente potrà raggruppare anche nomi diversi con lo stesso significato («preventivo idraulico» e «offerta caldaia» → *Casa*) e proporre nomi di cartella migliori.
 
 ## v0.3 – Assistente AI (Claude)
 
