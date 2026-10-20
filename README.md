@@ -20,6 +20,14 @@ Oppure da Terminale: `swift run OmniTools` (finestra) e `swift test` (test del n
 
 Per misurare anche le cartelle protette da macOS (Mail, Messaggi, alcune cache), aggiungi l'app (o Xcode/Terminale, se la lanci da lì) in **Impostazioni di Sistema › Privacy e sicurezza › Accesso completo al disco**. Senza, quelle cartelle vengono semplicemente saltate.
 
+## Icona
+
+L'icona sta in `Assets/`: il disegno vettoriale `AppIcon.svg`, il PNG da 1024 px e la cartella `AppIcon.iconset` con tutte le misure. Quando l'app sarà impacchettata come `.app`, il file `.icns` si crea sul Mac con:
+
+```bash
+iconutil -c icns Assets/AppIcon.iconset -o Assets/AppIcon.icns
+```
+
 ## Struttura
 
 | Cartella | Contenuto |

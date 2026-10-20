@@ -11,7 +11,8 @@ let package = Package(
         // Logica pura (scansione, regole, duplicati, pulizia): niente interfaccia, testabile.
         .target(name: "UtilityCore"),
         // App con finestra (SwiftUI).
-        .executableTarget(name: "OmniTools", dependencies: ["UtilityCore"]),
+        .executableTarget(name: "OmniTools", dependencies: ["UtilityCore"],
+                          resources: [.process("Resources")]),
         .testTarget(name: "UtilityCoreTests", dependencies: ["UtilityCore"]),
     ]
 )
