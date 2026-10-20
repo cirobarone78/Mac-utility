@@ -425,3 +425,33 @@ final class AllFilesDuplicatesTests: XCTestCase {
         XCTAssertTrue(PhotoSorter.plan(all.items, root: dir).allSatisfy(\.item.isMedia))
     }
 }
+
+final class SmartRenamerTests: XCTestCase {
+    func testGenericNames() {
+        for n in ["IMG_4021.jpg", "Schermata 2026-10-01 alle 10.22.33.png", "Senza titolo.txt", "Documento (3).pdf",
+                  "WhatsApp Image 2024-01-01 at 10.00.00.jpeg", "20240101_123456.jpg", "PXL_20240101_123456.jpg"] {
+            XCTAssertTrue(SmartRenamer.isGeneric(URL(fileURLWithPath: "/x/" + n)), n)
+        }
+        for n in ["Fattura Enel marzo.pdf", "CV Ciro 2026.docx", "Preventivo idraulico.pdf"] {
+            XCTAssertFalse(SmartRenamer.isGeneric(URL(fileURLWithPath: "/x/" + n)), n)
+        }
+    }
+
+    func testSanitizeAndApplyIsRestorable() throws {
+        XCTAssertEqual(SmartRenamer.sanitize(" 2024/03/02: Fattura? Enel. "), "2024 03 02 Fattura Enel")
+        let fm = FileManager.default
+        let base = fm.temporaryDirectory.appendingPathComponent("ren-" + UUID().uuidString)
+        let dir = base.appendingPathComponent("Download"), log = base.appendingPathComponent("log")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: base) }
+        let file = dir.appendingPathComponent("IMG_1.jpg")
+        try Data("x".utf8).write(to: file)
+        let p = RenameProposal(item: DiskItem(url: file, bytes: 1, isDirectory: false), newBase: "2024-07-14 Mare", reason: "")
+        let r = SmartRenamer.apply([p], folder: dir, policy: SafetyPolicy(neverTouchPaths: [], neverTouchNames: [], allowedPaths: []),
+                                   recordsFolder: log)
+        XCTAssertEqual(r.moved, 1)
+        XCTAssertTrue(fm.fileExists(atPath: dir.appendingPathComponent("2024-07-14 Mare.jpg").path))
+        OperationLog.restore(OperationLog.list(in: log)[0], in: log)
+        XCTAssertTrue(fm.fileExists(atPath: file.path))
+    }
+}

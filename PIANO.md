@@ -26,7 +26,7 @@
 | Medico del Mac: «Fai il punto» con consigli dell'AI in ordine di importanza + chat sul Mac | fatto |
 | «Chiedi all'AI cos'è» dal tasto destro (pulizia, avvio, spazio, processi, sicurezza) | fatto |
 | Controllo sicurezza: SIP, Gatekeeper, FileVault, firewall, XProtect, avvio automatico (firma, cartelle insolite, script), app non firmate/non autenticate, profili, estensioni di Chrome | fatto |
-| Rinomina intelligente | prossimo |
+| Rinomina intelligente (nomi generici → «AAAA-MM-GG Descrizione», estratto dei documenti solo su richiesta, Ripristina) | fatto |
 | Cronologia con «Ripristina»: ogni pulizia, eliminazione di duplicati e riordino torna com'era in un clic (anche dal Cestino) | fatto |
 | Icona nella barra dei menu (disco, memoria, CPU, batteria, pulizia rapida) | fatto |
 | Riordina cartelle (per argomento, tipo o mese; file inutili; annulla) | fatto (v0.2) |

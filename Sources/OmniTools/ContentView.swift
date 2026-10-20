@@ -13,6 +13,7 @@ struct ContentView: View {
                 Section("Intelligenza artificiale") {
                     row(.doctor)
                     row(.assistant)
+                    row(.rename)
                 }
                 Section {
                     row(.history)
@@ -34,6 +35,7 @@ struct ContentView: View {
                 case .organize: OrganizeView()
                 case .assistant: AssistantView()
                 case .doctor: DoctorView()
+                case .rename: RenameView()
                 case .security: SecurityView()
                 case .history: HistoryView()
                 case .rules: RulesView()

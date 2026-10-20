@@ -53,6 +53,7 @@ private struct HistoryRow: View {
         case "Duplicati": Module.duplicates.icon
         case "Doppioni foto", "Riordino foto": Module.photos.icon
         case "WhatsApp": Module.whatsapp.icon
+        case "Rinomina": Module.rename.icon
         case "Riordino": Module.organize.icon
         case "Assistente AI": Module.assistant.icon
         case "Analisi spazio": Module.space.icon
