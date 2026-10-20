@@ -38,12 +38,9 @@ final class QuickCleanModel: ObservableObject {
     func scan(policy: SafetyPolicy) {
         scanning = true
         result = nil
-        Task.detached(priority: .userInitiated) { [weak self] in
-            let found = CleanupCatalog.scan(CleanupCatalog.standard.filter { $0.risk == .safe }, policy: policy)
-            await MainActor.run {
-                self?.findings = found
-                self?.scanning = false
-            }
+        Task {
+            findings = await CleanupModel.scan(CleanupCatalog.standard.filter { $0.risk == .safe }, policy: policy)
+            scanning = false
         }
     }
 

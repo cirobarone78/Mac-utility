@@ -12,7 +12,7 @@ echo "▸ Compilo (release)…"
 swift build -c release
 BIN=$(swift build -c release --show-bin-path)
 
-echo "▸ Preparo $APP…"
+echo "▸ Preparo ${APP}…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/OmniTools" "$APP/Contents/MacOS/OmniTools"
@@ -51,5 +51,5 @@ if [[ "${1:-}" == "--install" ]]; then
   open /Applications/OmniTools.app
   echo "✓ Installata: /Applications/OmniTools.app"
 else
-  echo "✓ Pronta: $APP  (per installarla: ./scripts/build-app.sh --install)"
+  echo "✓ Pronta: ${APP}  (per installarla: ./scripts/build-app.sh --install)"
 fi

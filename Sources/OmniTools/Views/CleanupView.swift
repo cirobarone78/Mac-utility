@@ -31,16 +31,18 @@ final class CleanupModel: ObservableObject {
         scanning = true
         lastReport = nil
         let cats = CleanupCatalog.standard.filter { includeDeveloper || !$0.forDevelopers }
-        Task.detached(priority: .userInitiated) { [weak self] in
-            let found = CleanupCatalog.scan(cats, policy: policy)
-            await MainActor.run {
-                guard let self else { return }
-                self.findings = found
-                // Solo le categorie sicure vengono preselezionate.
-                self.selected = Set(found.filter { $0.category.risk == .safe }.map(\.id))
-                self.scanning = false
-            }
+        Task {
+            // La scansione gira fuori dal thread principale; l'interfaccia si aggiorna qui.
+            let found = await Self.scan(cats, policy: policy)
+            findings = found
+            // Solo le categorie sicure vengono preselezionate.
+            selected = Set(found.filter { $0.category.risk == .safe }.map(\.id))
+            scanning = false
         }
+    }
+
+    nonisolated static func scan(_ cats: [CleanupCategory], policy: SafetyPolicy) async -> [CleanupFinding] {
+        CleanupCatalog.scan(cats, policy: policy, isCancelled: { Task.isCancelled })
     }
 
     func clean(policy: SafetyPolicy) {

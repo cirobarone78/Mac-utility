@@ -30,19 +30,21 @@ final class OrganizeModel: ObservableObject {
         working = true
         message = nil
         let target = self.folder, chosen = self.strategy
-        Task.detached(priority: .userInitiated) { [weak self] in
-            let plan = FolderOrganizer(strategy: chosen).plan(folder: target, policy: policy)
-            await MainActor.run {
-                guard let self else { return }
-                self.plan = plan
-                self.excluded = []
-                self.toRemove = Set(plan.removals.filter { $0.risk == .safe }.map(\.id))
-                self.working = false
-                if plan.groups.isEmpty && plan.removals.isEmpty {
-                    self.message = "Nessun file sfuso da riordinare in questa cartella."
-                }
+        Task {
+            let plan = await Self.makePlan(chosen, folder: target, policy: policy)
+            self.plan = plan
+            excluded = []
+            toRemove = Set(plan.removals.filter { $0.risk == .safe }.map(\.id))
+            working = false
+            if plan.groups.isEmpty && plan.removals.isEmpty {
+                message = "Nessun file sfuso da riordinare in questa cartella."
             }
         }
+    }
+
+    nonisolated static func makePlan(_ strategy: FolderOrganizer.Strategy, folder: URL,
+                                     policy: SafetyPolicy) async -> OrganizePlan {
+        FolderOrganizer(strategy: strategy).plan(folder: folder, policy: policy)
     }
 
     func apply(policy: SafetyPolicy) {

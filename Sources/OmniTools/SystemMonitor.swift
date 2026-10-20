@@ -55,9 +55,8 @@ final class SystemMonitor: ObservableObject {
         (s.battery, s.charging) = battery()
         s.topProcesses = snapshot.topProcesses
         snapshot = s
-        Task.detached(priority: .utility) {
-            let rows = Self.topProcesses()
-            await MainActor.run { self.snapshot.topProcesses = rows }
+        Task {
+            snapshot.topProcesses = await Self.loadTopProcesses()
         }
     }
 
@@ -115,6 +114,8 @@ final class SystemMonitor: ObservableObject {
         }
         return (nil, false)
     }
+
+    nonisolated static func loadTopProcesses() async -> [ProcessRow] { topProcesses() }
 
     /// I processi che usano più CPU, letti da `ps` (nessun permesso speciale richiesto).
     nonisolated static func topProcesses(limit: Int = 8) -> [ProcessRow] {

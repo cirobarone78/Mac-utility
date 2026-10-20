@@ -20,21 +20,24 @@ final class DuplicatesModel: ObservableObject {
         groups = []
         selected = []
         let scanRoot = self.root
-        task = Task.detached(priority: .userInitiated) { [weak self] in
-            let found = DuplicateFinder().find(
-                under: scanRoot, policy: policy,
-                progress: { msg in Task { @MainActor in self?.status = msg } },
-                isCancelled: { Task.isCancelled })
-            if Task.isCancelled { return }
-            await MainActor.run {
-                guard let self else { return }
-                self.groups = found
-                // Proposta: tenere il più vecchio, selezionare le copie.
-                self.selected = Set(found.flatMap { $0.files.dropFirst().map(\.url) })
-                self.scanning = false
-                self.status = found.isEmpty ? "Nessun duplicato trovato." : ""
+        task = Task {
+            let box = WeakRef(self)
+            let found = await Self.find(under: scanRoot, policy: policy) { msg in
+                Task { @MainActor in box.value?.status = msg }
             }
+            if Task.isCancelled { return }
+            groups = found
+            // Proposta: tenere il più vecchio, selezionare le copie.
+            selected = Set(found.flatMap { $0.files.dropFirst().map(\.url) })
+            scanning = false
+            status = found.isEmpty ? "Nessun duplicato trovato." : ""
         }
+    }
+
+    nonisolated static func find(under root: URL, policy: SafetyPolicy,
+                                 progress: @escaping @Sendable (String) -> Void) async -> [DuplicateGroup] {
+        DuplicateFinder().find(under: root, policy: policy, progress: progress,
+                               isCancelled: { Task.isCancelled })
     }
 
     func cancel() {
@@ -62,6 +65,12 @@ final class DuplicatesModel: ObservableObject {
         }
         selected.subtract(moved)
     }
+}
+
+/// Riferimento debole passabile ai thread in background (per i messaggi di avanzamento).
+final class WeakRef<T: AnyObject>: @unchecked Sendable {
+    weak var value: T?
+    init(_ value: T) { self.value = value }
 }
 
 struct DuplicatesView: View {

@@ -18,17 +18,20 @@ final class SpaceModel: ObservableObject {
         loading = true
         items = []
         let root = current, scanMode = self.mode
-        task = Task.detached(priority: .userInitiated) { [weak self] in
-            let scanner = DiskScanner()
-            let result = scanMode == .folders
-                ? scanner.children(of: root, isCancelled: { Task.isCancelled })
-                : scanner.largeFiles(under: root, isCancelled: { Task.isCancelled })
+        task = Task {
+            let result = await Self.measure(root, mode: scanMode)
             if Task.isCancelled { return }
-            await MainActor.run {
-                self?.items = result
-                self?.loading = false
-            }
+            items = result
+            loading = false
         }
+    }
+
+    /// Gira fuori dal thread principale; si interrompe se l'utente cambia cartella.
+    nonisolated static func measure(_ root: URL, mode: Mode) async -> [DiskItem] {
+        let scanner = DiskScanner()
+        return mode == .folders
+            ? scanner.children(of: root, isCancelled: { Task.isCancelled })
+            : scanner.largeFiles(under: root, isCancelled: { Task.isCancelled })
     }
 
     func open(_ item: DiskItem) {
