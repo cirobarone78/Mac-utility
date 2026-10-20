@@ -7,7 +7,7 @@ struct ContentView: View {
         NavigationSplitView {
             List(selection: $state.selection) {
                 Section("Strumenti") {
-                    ForEach([Module.dashboard, .space, .cleanup, .organize, .duplicates, .system, .startup]) { row($0) }
+                    ForEach([Module.dashboard, .space, .cleanup, .organize, .duplicates, .photos, .system, .startup]) { row($0) }
                 }
                 Section("Intelligenza artificiale") {
                     row(.assistant)
@@ -25,6 +25,7 @@ struct ContentView: View {
                 case .space: SpaceView()
                 case .cleanup: CleanupView()
                 case .duplicates: DuplicatesView()
+                case .photos: PhotosView()
                 case .system: SystemView()
                 case .startup: StartupView()
                 case .organize: OrganizeView()

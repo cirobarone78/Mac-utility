@@ -287,3 +287,59 @@ final class OperationLogTests: XCTestCase {
         XCTAssertTrue(record.moves[0].toTrash)
     }
 }
+
+final class PhotoAndCloudTests: XCTestCase {
+    let home = "/Users/prova"
+
+    func testICloudDriveFilesAllowedButAppContainersProtected() {
+        let p = SafetyPolicy.default
+        let drive = home + "/Library/Mobile Documents/com~apple~CloudDocs"
+        XCTAssertTrue(p.isProtected(URL(fileURLWithPath: drive), home: home))                    // la radice no
+        XCTAssertFalse(p.isProtected(URL(fileURLWithPath: drive + "/Foto/a.jpg"), home: home))   // i file sì
+        XCTAssertTrue(p.isProtected(URL(fileURLWithPath: home + "/Library/Mobile Documents/com~apple~Pages/x"), home: home))
+    }
+
+    func testOldRulesFileGetsICloudException() throws {
+        let json = #"{"neverTouchNames":[".git"],"neverTouchPaths":["~/Library/Mobile Documents"]}"#
+        let p = try JSONDecoder().decode(SafetyPolicy.self, from: Data(json.utf8))
+        XCTAssertEqual(p.allowedPaths, SafetyPolicy.defaultAllowedPaths)
+    }
+
+    func testGoogleDriveRootsProtected() {
+        let p = SafetyPolicy.default
+        let mine = home + "/Library/CloudStorage/GoogleDrive-a@b.it/Il mio Drive"
+        XCTAssertTrue(p.isProtected(URL(fileURLWithPath: mine), home: home))
+        XCTAssertFalse(p.isProtected(URL(fileURLWithPath: mine + "/doc.pdf"), home: home))
+    }
+
+    private func item(_ name: String, hash: UInt64?, w: Int = 400, h: Int = 300, bytes: Int64 = 100) -> PhotoItem {
+        PhotoItem(url: URL(fileURLWithPath: "/tmp/\(name)"), bytes: bytes, pixels: w * h, width: w, height: h,
+                  date: nil, hasCaptureDate: false, visualHash: hash, isVideo: false)
+    }
+
+    func testSimilarGrouping() {
+        let base: UInt64 = 0xA5A5_5A5A_F0F0_0F0F
+        let groups = PhotoScanner.groups([
+            item("a.jpg", hash: base, w: 4000, h: 3000, bytes: 3_000_000),
+            item("a-whatsapp.jpg", hash: base ^ 0b111, w: 1600, h: 1200, bytes: 200_000),   // 3 bit diversi
+            item("altra.jpg", hash: ~base),
+            item("verticale.jpg", hash: base, w: 300, h: 400),                              // proporzioni diverse
+            item("bianca.png", hash: 0), item("bianca2.png", hash: 0),                      // uniformi: escluse
+        ], similarity: 6)
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].kind, .similar)
+        XCTAssertEqual(groups[0].items.first?.url.lastPathComponent, "a.jpg")   // la più grande si tiene
+    }
+
+    func testSorterPlan() {
+        var c = DateComponents(); c.year = 2023; c.month = 7; c.day = 14
+        let d = Calendar(identifier: .gregorian).date(from: c)!
+        let photo = PhotoItem(url: URL(fileURLWithPath: "/tmp/root/x.jpg"), bytes: 1, pixels: 0, width: 0, height: 0,
+                              date: d, hasCaptureDate: true, visualHash: nil, isVideo: false)
+        let plan = PhotoSorter.plan([photo], root: URL(fileURLWithPath: "/tmp/root"))
+        XCTAssertEqual(plan.first?.folder, "2023/07 luglio")
+        let already = PhotoItem(url: URL(fileURLWithPath: "/tmp/root/2023/07 luglio/x.jpg"), bytes: 1, pixels: 0,
+                                width: 0, height: 0, date: d, hasCaptureDate: true, visualHash: nil, isVideo: false)
+        XCTAssertTrue(PhotoSorter.plan([already], root: URL(fileURLWithPath: "/tmp/root")).isEmpty)
+    }
+}

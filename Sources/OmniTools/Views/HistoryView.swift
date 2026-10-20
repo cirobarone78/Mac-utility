@@ -51,6 +51,7 @@ private struct HistoryRow: View {
         switch record.kind {
         case "Pulizia disco", "Pulizia rapida": Module.cleanup.icon
         case "Duplicati": Module.duplicates.icon
+        case "Doppioni foto", "Riordino foto": Module.photos.icon
         case "Riordino": Module.organize.icon
         case "Assistente AI": Module.assistant.icon
         case "Analisi spazio": Module.space.icon
