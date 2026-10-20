@@ -65,9 +65,7 @@ final class OrganizeModel: ObservableObject {
 
     func undo() {
         guard let r = FolderOrganizer.undoLast() else { return }
-        message = "Riordino annullato: \(r.moved) file rimessi al loro posto."
-            + (r.errors.isEmpty ? "" : " Problemi: " + r.errors.prefix(3).joined(separator: "; "))
-            + " I file finiti nel Cestino si recuperano dal Finder."
+        message = "Riordino annullato. " + r.message
         canUndo = FolderOrganizer.latestRecordFolder() != nil
         plan = nil
     }

@@ -27,7 +27,7 @@ extension Color {
 }
 
 enum Module: String, CaseIterable, Identifiable {
-    case dashboard, space, cleanup, duplicates, system, startup, organize, assistant, rules
+    case dashboard, space, cleanup, duplicates, system, startup, organize, assistant, history, rules
     var id: String { rawValue }
 
     var title: String {
@@ -40,6 +40,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .startup: "Elementi all'avvio"
         case .organize: "Riordina cartelle"
         case .assistant: "Assistente AI"
+        case .history: "Cronologia"
         case .rules: "Regole di sicurezza"
         }
     }
@@ -54,6 +55,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .startup: "power"
         case .organize: "folder.badge.gearshape"
         case .assistant: "brain"
+        case .history: "clock.arrow.circlepath"
         case .rules: "lock.shield"
         }
     }
@@ -66,6 +68,15 @@ final class AppState: ObservableObject {
     @Published var selection: Module? = .dashboard
 
     func savePolicy() { try? policy.save() }
+}
+
+/// Ripristina un'operazione dalla Cronologia.
+enum Restore {
+    /// Messaggio per l'utente, oppure nil se l'operazione non esiste più o è già stata ripristinata.
+    static func run(_ id: String) -> String? {
+        guard let record = OperationLog.list().first(where: { $0.id == id }), !record.restored else { return nil }
+        return OperationLog.restore(record).message
+    }
 }
 
 enum Finder {

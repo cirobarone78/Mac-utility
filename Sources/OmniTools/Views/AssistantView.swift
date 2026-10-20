@@ -41,11 +41,11 @@ final class AssistantModel: ObservableObject {
     func apply(policy: SafetyPolicy) {
         guard let advice else { return }
         let (plan, removals) = advice.plan(approved: approved)
-        let r = FolderOrganizer.apply(plan, removals: removals, policy: policy)
+        let r = FolderOrganizer.apply(plan, removals: removals, policy: policy, kind: "Assistente AI")
         message = "Fatto: \(r.moved) file spostati, \(r.createdFolders) cartelle nuove"
             + (r.trashed > 0 ? ", \(r.trashed) file nel Cestino (\(Bytes.format(r.trashedBytes)))" : "")
             + "." + (r.errors.isEmpty ? "" : " Problemi: " + r.errors.prefix(3).joined(separator: "; "))
-            + " Puoi annullare da «Riordina cartelle»."
+            + " Per tornare indietro: Cronologia › Ripristina."
         self.advice = nil
     }
 }
@@ -272,6 +272,6 @@ struct AssistantView: View {
         let trash = chosen.filter { $0.action == .trash }
         let bytes = trash.reduce(Int64(0)) { $0 + $1.item.bytes }
         return "Sposterò \(moves) file" + (trash.isEmpty ? "." : " e metterò \(trash.count) file nel Cestino (\(Bytes.format(bytes))).")
-            + " Gli spostamenti si annullano da «Riordina cartelle»."
+            + " Potrai tornare indietro da Cronologia › Ripristina."
     }
 }

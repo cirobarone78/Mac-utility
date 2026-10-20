@@ -5,14 +5,22 @@ import Foundation
 public struct SafeRemover: Sendable {
     public struct Report: Sendable {
         public var moved: [URL] = []
+        /// Per ogni file spostato: dove stava e dove si trova ora nel Cestino.
+        public var trashMoves: [OperationRecord.Move] = []
         public var skipped: [(url: URL, reason: String)] = []
         public var bytes: Int64 = 0
+        /// Identificativo dell'operazione in Cronologia (per il tasto «Ripristina»).
+        public var operationID: String?
     }
 
     public let policy: SafetyPolicy
     public init(policy: SafetyPolicy) { self.policy = policy }
 
-    public func moveToTrash(_ items: [DiskItem]) -> Report {
+    /// - Parameters:
+    ///   - kind: nome dell'operazione in Cronologia ("Pulizia disco", "Duplicati"…).
+    ///   - log: false quando chi chiama registra l'operazione insieme ad altro (es. il riordino).
+    public func moveToTrash(_ items: [DiskItem], kind: String = "Cestino", log: Bool = true,
+                            logFolder: URL = OperationLog.folder) -> Report {
         var r = Report()
         for item in items {
             if policy.isProtected(item.url) {
@@ -20,14 +28,25 @@ public struct SafeRemover: Sendable {
                 continue
             }
             do {
-                try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
+                var inTrash: NSURL?
+                try FileManager.default.trashItem(at: item.url, resultingItemURL: &inTrash)
                 r.moved.append(item.url)
                 r.bytes += item.bytes
+                if let dest = inTrash?.path {
+                    r.trashMoves.append(.init(from: item.url.path, to: dest))
+                }
             } catch {
                 r.skipped.append((url: item.url, reason: error.localizedDescription))
             }
         }
         Journal.append(r)
+        if log && !r.trashMoves.isEmpty {
+            let record = OperationRecord(kind: kind,
+                                         summary: "\(r.moved.count) elementi nel Cestino (\(Bytes.format(r.bytes)))",
+                                         moves: r.trashMoves, bytes: r.bytes)
+            OperationLog.save(record, in: logFolder)
+            r.operationID = record.id
+        }
         return r
     }
 }

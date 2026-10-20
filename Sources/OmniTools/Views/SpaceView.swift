@@ -101,7 +101,7 @@ struct SpaceView: View {
         .confirmationDialog("Spostare nel Cestino?", isPresented: Binding(
             get: { confirm != nil }, set: { if !$0 { confirm = nil } }), presenting: confirm) { item in
             Button("Sposta nel Cestino (\(Bytes.format(item.bytes)))", role: .destructive) {
-                _ = SafeRemover(policy: state.policy).moveToTrash([item])
+                _ = SafeRemover(policy: state.policy).moveToTrash([item], kind: "Analisi spazio")
                 model.load()
             }
         } message: { item in

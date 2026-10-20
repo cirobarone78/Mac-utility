@@ -30,6 +30,7 @@ final class QuickCleanModel: ObservableObject {
     @Published var findings: [CleanupFinding] = []
     @Published var scanning = false
     @Published var result: String?
+    @Published var lastOperationID: String?
 
     var bytes: Int64 { findings.reduce(0) { $0 + $1.item.bytes } }
 
@@ -46,9 +47,16 @@ final class QuickCleanModel: ObservableObject {
     }
 
     func clean(policy: SafetyPolicy) {
-        let r = SafeRemover(policy: policy).moveToTrash(findings.map(\.item))
+        let r = SafeRemover(policy: policy).moveToTrash(findings.map(\.item), kind: "Pulizia rapida")
+        lastOperationID = r.operationID
         result = "\(Bytes.format(r.bytes)) nel Cestino. Svuotalo per liberare lo spazio."
         findings = []
+    }
+
+    func restoreLast() {
+        guard let id = lastOperationID else { return }
+        result = Restore.run(id) ?? "Già ripristinato."
+        lastOperationID = nil
     }
 }
 
@@ -138,6 +146,9 @@ struct MenuBarPanel: View {
                 Text(quick.result ?? "Pulizia rapida").font(.callout)
                     .foregroundStyle(quick.result == nil ? .primary : .secondary)
                 Spacer()
+                if quick.lastOperationID != nil {
+                    Button("Ripristina") { quick.restoreLast() }
+                }
                 Button("Analizza") { quick.scan(policy: state.policy) }
             }
         }

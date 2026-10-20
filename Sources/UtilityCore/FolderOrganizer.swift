@@ -257,45 +257,41 @@ public struct FolderOrganizer: Sendable {
 
 // MARK: - Applicazione e annullamento
 
-/// Ciò che è stato fatto, salvato su disco per poterlo annullare.
-public struct OrganizeRecord: Codable, Sendable {
-    public struct Move: Codable, Sendable { public let from: String; public let to: String }
-    public let date: Date
-    public let folder: String
-    public var moves: [Move]
-    public var createdFolders: [String]
-}
-
 public struct OrganizeResult: Sendable {
     public var moved = 0
     public var createdFolders = 0
     public var trashed = 0
     public var trashedBytes: Int64 = 0
     public var errors: [String] = []
+    /// Identificativo dell'operazione in Cronologia.
+    public var operationID: String?
 }
 
 extension FolderOrganizer {
-    public static var recordsFolder: URL {
-        SafetyPolicy.defaultFileURL.deletingLastPathComponent().appendingPathComponent("riordini", isDirectory: true)
-    }
+    /// Tipi di operazione che «Annulla l'ultimo riordino» può annullare.
+    public static let undoableKinds: Set<String> = ["Riordino", "Assistente AI"]
 
     /// Esegue il piano: crea le cartelle, sposta i file, manda nel Cestino gli inutili selezionati.
+    /// Spostamenti e Cestino finiscono in un'unica voce di Cronologia, ripristinabile in un colpo.
     /// `remove` è sostituibile nei test (per non toccare il Cestino vero).
     public static func apply(_ plan: OrganizePlan,
                              removals: [DiskItem],
                              policy: SafetyPolicy,
-                             recordsFolder: URL = recordsFolder,
+                             kind: String = "Riordino",
+                             recordsFolder: URL = OperationLog.folder,
                              remove: (([DiskItem]) -> SafeRemover.Report)? = nil)
         -> OrganizeResult {
         let fm = FileManager.default
         var result = OrganizeResult()
-        var record = OrganizeRecord(date: Date(), folder: plan.folder.path, moves: [], createdFolders: [])
+        var moves: [OperationRecord.Move] = []
+        var created: [String] = []
 
         let toTrash = removals.filter { !policy.isProtected($0.url) }
-        let report = remove?(toTrash) ?? SafeRemover(policy: policy).moveToTrash(toTrash)
+        let report = remove?(toTrash) ?? SafeRemover(policy: policy).moveToTrash(toTrash, log: false)
         result.trashed = report.moved.count
         result.trashedBytes = report.bytes
         result.errors += report.skipped.map { "\($0.url.lastPathComponent): \($0.reason)" }
+        moves += report.trashMoves
 
         for group in plan.groups where !group.files.isEmpty {
             let dir = plan.folder.appendingPathComponent(sanitize(group.name), isDirectory: true)
@@ -303,7 +299,7 @@ extension FolderOrganizer {
             if !fm.fileExists(atPath: dir.path, isDirectory: &isDir) {
                 do {
                     try fm.createDirectory(at: dir, withIntermediateDirectories: false)
-                    record.createdFolders.append(dir.path)
+                    created.append(dir.path)
                     result.createdFolders += 1
                 } catch {
                     result.errors.append("\(group.name): \(error.localizedDescription)")
@@ -317,7 +313,7 @@ extension FolderOrganizer {
                 let dest = uniqueDestination(for: file.url.lastPathComponent, in: dir)
                 do {
                     try fm.moveItem(at: file.url, to: dest)
-                    record.moves.append(.init(from: file.url.path, to: dest.path))
+                    moves.append(.init(from: file.url.path, to: dest.path))
                     result.moved += 1
                 } catch {
                     result.errors.append("\(file.url.lastPathComponent): \(error.localizedDescription)")
@@ -325,69 +321,25 @@ extension FolderOrganizer {
             }
         }
 
-        if !record.moves.isEmpty || !record.createdFolders.isEmpty {
-            save(record, in: recordsFolder)
-            Journal.append(lines: record.moves.map { "SPOSTATO\t\($0.from)\t→ \($0.to)" })
-        }
+        let summary = "\(plan.folder.lastPathComponent): \(result.moved) file spostati"
+            + (result.trashed > 0 ? ", \(result.trashed) nel Cestino" : "")
+        let record = OperationRecord(kind: kind, summary: summary, moves: moves,
+                                     createdFolders: created, bytes: result.trashedBytes)
+        OperationLog.save(record, in: recordsFolder)
+        if !moves.isEmpty || !created.isEmpty { result.operationID = record.id }
+        Journal.append(lines: moves.map { "SPOSTATO\t\($0.from)\t→ \($0.to)" })
         return result
     }
 
-    /// Rimette i file al loro posto e toglie le cartelle create (se sono rimaste vuote).
-    /// I file mandati nel Cestino si recuperano dal Finder.
+    /// Annulla l'ultimo riordino (anche i file mandati nel Cestino tornano al loro posto).
     @discardableResult
-    public static func undoLast(recordsFolder: URL = recordsFolder) -> OrganizeResult? {
-        let fm = FileManager.default
-        guard let url = latestRecord(in: recordsFolder),
-              let data = try? Data(contentsOf: url),
-              let record = try? decoder.decode(OrganizeRecord.self, from: data) else { return nil }
-        var result = OrganizeResult()
-        for move in record.moves.reversed() {
-            guard !fm.fileExists(atPath: move.from) else {
-                result.errors.append("\((move.from as NSString).lastPathComponent): al suo posto c'è già un altro file")
-                continue
-            }
-            do {
-                try fm.moveItem(atPath: move.to, toPath: move.from)
-                result.moved += 1
-            } catch {
-                result.errors.append("\((move.to as NSString).lastPathComponent): \(error.localizedDescription)")
-            }
-        }
-        for dir in record.createdFolders {
-            if (try? fm.contentsOfDirectory(atPath: dir))?.filter({ $0 != ".DS_Store" }).isEmpty == true {
-                try? fm.removeItem(atPath: dir)   // cartella vuota creata da noi
-                result.createdFolders += 1
-            }
-        }
-        if result.errors.isEmpty { try? fm.removeItem(at: url) }
-        Journal.append(lines: ["ANNULLATO\triordino di \(record.folder)"])
-        return result
+    public static func undoLast(recordsFolder: URL = OperationLog.folder) -> RestoreResult? {
+        guard let record = OperationLog.latest(kinds: undoableKinds, in: recordsFolder) else { return nil }
+        return OperationLog.restore(record, in: recordsFolder)
     }
 
-    public static func latestRecordFolder(recordsFolder: URL = recordsFolder) -> String? {
-        guard let url = latestRecord(in: recordsFolder), let data = try? Data(contentsOf: url) else { return nil }
-        return (try? decoder.decode(OrganizeRecord.self, from: data))?.folder
-    }
-
-    static func latestRecord(in folder: URL) -> URL? {
-        ((try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
-            .filter { $0.pathExtension == "json" }
-            .max { $0.lastPathComponent < $1.lastPathComponent }
-    }
-
-    static func save(_ record: OrganizeRecord, in folder: URL) {
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let name = String(format: "%.0f", record.date.timeIntervalSince1970 * 1000) + ".json"
-        let enc = JSONEncoder()
-        enc.dateEncodingStrategy = .iso8601
-        enc.outputFormatting = .prettyPrinted
-        try? enc.encode(record).write(to: folder.appendingPathComponent(name), options: .atomic)
-    }
-
-    static var decoder: JSONDecoder {
-        let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
-        return d
+    public static func latestRecordFolder(recordsFolder: URL = OperationLog.folder) -> String? {
+        OperationLog.latest(kinds: undoableKinds, in: recordsFolder)?.summary
     }
 
     static func sanitize(_ name: String) -> String {

@@ -13,6 +13,7 @@ struct ContentView: View {
                     row(.assistant)
                 }
                 Section {
+                    row(.history)
                     row(.rules)
                 }
             }
@@ -28,6 +29,7 @@ struct ContentView: View {
                 case .startup: StartupView()
                 case .organize: OrganizeView()
                 case .assistant: AssistantView()
+                case .history: HistoryView()
                 case .rules: RulesView()
                 }
             }

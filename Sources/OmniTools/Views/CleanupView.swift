@@ -11,6 +11,8 @@ final class CleanupModel: ObservableObject {
     @Published var includeDeveloper = true
     /// App aperte in questo momento (identificativi), per avvisare prima di pulire.
     @Published var runningApps: Set<String> = []
+    /// Ultima pulizia, ripristinabile con un clic.
+    @Published var lastOperationID: String?
 
     var selectedBytes: Int64 {
         findings.filter { selected.contains($0.id) }.reduce(0) { $0 + $1.item.bytes }
@@ -66,12 +68,20 @@ final class CleanupModel: ObservableObject {
 
     func clean(policy: SafetyPolicy) {
         let items = findings.filter { selected.contains($0.id) }.map(\.item)
-        let report = SafeRemover(policy: policy).moveToTrash(items)
+        let report = SafeRemover(policy: policy).moveToTrash(items, kind: "Pulizia disco")
+        lastOperationID = report.operationID
         lastReport = "Spostati nel Cestino \(report.moved.count) elementi (\(Bytes.format(report.bytes)))."
             + (report.skipped.isEmpty ? "" : " Saltati \(report.skipped.count) (in uso o protetti).")
             + " Lo spazio si libera svuotando il Cestino."
         findings.removeAll { report.moved.contains($0.id) }
         selected.subtract(report.moved)
+    }
+
+    func restoreLast() {
+        guard let id = lastOperationID else { return }
+        lastReport = Restore.run(id) ?? "Questa pulizia è già stata ripristinata."
+        lastOperationID = nil
+        findings = []
     }
 }
 
@@ -94,8 +104,15 @@ struct CleanupView: View {
             if model.scanning {
                 ProgressView("Analisi in corso…").frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if model.findings.isEmpty {
-                ContentUnavailableView("Premi «Analizza»", systemImage: Module.cleanup.icon,
-                                       description: Text(model.lastReport ?? "Vedrai cosa si può eliminare, e perché, prima di toccare qualsiasi cosa."))
+                ContentUnavailableView {
+                    Label("Premi «Analizza»", systemImage: Module.cleanup.icon)
+                } description: {
+                    Text(model.lastReport ?? "Vedrai cosa si può eliminare, e perché, prima di toccare qualsiasi cosa.")
+                } actions: {
+                    if model.lastOperationID != nil {
+                        Button("Ripristina: rimetti tutto com'era") { model.restoreLast() }
+                    }
+                }
             } else {
                 List {
                     ForEach(model.groups) { group in
@@ -143,6 +160,9 @@ struct CleanupView: View {
     private var footer: some View {
         HStack {
             if let r = model.lastReport { Text(r).font(.callout).foregroundStyle(.secondary) }
+            if model.lastOperationID != nil {
+                Button("Ripristina") { model.restoreLast() }
+            }
             Spacer()
             Text("Selezionati: \(Bytes.format(model.selectedBytes))").monospacedDigit()
             Button("Sposta nel Cestino…") { confirming = true }

@@ -163,7 +163,9 @@ final class FolderOrganizerTests: XCTestCase {
         XCTAssertFalse(fm.fileExists(atPath: dir.appendingPathComponent("solo.txt").path))
 
         let undo = FolderOrganizer.undoLast(recordsFolder: records)
-        XCTAssertEqual(undo?.moved, 3)
+        XCTAssertEqual(undo?.restored, 3)
+        // Una volta ripristinato non si annulla due volte.
+        XCTAssertNil(FolderOrganizer.undoLast(recordsFolder: records))
         XCTAssertTrue(fm.fileExists(atPath: dir.appendingPathComponent("Preventivo idraulico.pdf").path))
         XCTAssertTrue(fm.fileExists(atPath: dir.appendingPathComponent("solo.txt").path))
         XCTAssertFalse(fm.fileExists(atPath: dir.appendingPathComponent("Preventivo").path))
@@ -254,5 +256,34 @@ final class CacheKnowledgeTests: XCTestCase {
         let d = CacheKnowledge.info(for: DiskItem(url: URL(fileURLWithPath: "/x/OmniTools-abcdef"), bytes: 1, isDirectory: true),
                                     category: derived)
         XCTAssertTrue(d.title.contains("«OmniTools»"))
+    }
+}
+
+final class OperationLogTests: XCTestCase {
+    func testRestoreMovesBackAndHandlesMissing() throws {
+        let fm = FileManager.default
+        let base = fm.temporaryDirectory.appendingPathComponent("log-" + UUID().uuidString)
+        let log = base.appendingPathComponent("operazioni")
+        let original = base.appendingPathComponent("Download/a.txt")
+        let fakeTrash = base.appendingPathComponent(".Trash/a.txt")
+        try fm.createDirectory(at: fakeTrash.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "x".write(to: fakeTrash, atomically: true, encoding: .utf8)
+        defer { try? fm.removeItem(at: base) }
+
+        let record = OperationRecord(kind: "Pulizia disco", summary: "prova", moves: [
+            .init(from: original.path, to: fakeTrash.path),
+            .init(from: base.appendingPathComponent("Download/b.txt").path,
+                  to: base.appendingPathComponent(".Trash/b.txt").path),   // Cestino già svuotato
+        ])
+        OperationLog.save(record, in: log)
+        XCTAssertEqual(OperationLog.list(in: log).count, 1)
+
+        let r = OperationLog.restore(record, in: log)
+        XCTAssertEqual(r.restored, 1)
+        XCTAssertEqual(r.missing, 1)
+        XCTAssertTrue(fm.fileExists(atPath: original.path))   // la cartella Download è stata ricreata
+        XCTAssertTrue(OperationLog.list(in: log)[0].restored)
+        XCTAssertNil(OperationLog.latest(in: log))
+        XCTAssertTrue(record.moves[0].toTrash)
     }
 }

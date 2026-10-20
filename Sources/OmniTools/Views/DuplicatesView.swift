@@ -8,6 +8,7 @@ final class DuplicatesModel: ObservableObject {
     @Published var selected: Set<URL> = []
     @Published var scanning = false
     @Published var status = ""
+    @Published var lastOperationID: String?
     private var task: Task<Void, Never>?
 
     var selectedBytes: Int64 {
@@ -40,6 +41,13 @@ final class DuplicatesModel: ObservableObject {
                                isCancelled: { Task.isCancelled })
     }
 
+    func restoreLast() {
+        guard let id = lastOperationID else { return }
+        status = Restore.run(id) ?? "Già ripristinato."
+        lastOperationID = nil
+        groups = []
+    }
+
     func cancel() {
         task?.cancel()
         scanning = false
@@ -56,7 +64,8 @@ final class DuplicatesModel: ObservableObject {
 
     func trash(policy: SafetyPolicy) {
         let items = groups.flatMap(\.files).filter { selected.contains($0.url) }
-        let report = SafeRemover(policy: policy).moveToTrash(items)
+        let report = SafeRemover(policy: policy).moveToTrash(items, kind: "Duplicati")
+        lastOperationID = report.operationID
         status = "Spostati nel Cestino \(report.moved.count) file (\(Bytes.format(report.bytes)))."
         let moved = Set(report.moved)
         groups = groups.compactMap { g in
@@ -97,8 +106,15 @@ struct DuplicatesView: View {
                 ProgressView(model.status.isEmpty ? "Ricerca in corso…" : model.status)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if model.groups.isEmpty {
-                ContentUnavailableView("Nessun risultato", systemImage: Module.duplicates.icon,
-                                       description: Text(model.status.isEmpty ? "Scegli una cartella e premi «Cerca duplicati»." : model.status))
+                ContentUnavailableView {
+                    Label("Nessun risultato", systemImage: Module.duplicates.icon)
+                } description: {
+                    Text(model.status.isEmpty ? "Scegli una cartella e premi «Cerca duplicati»." : model.status)
+                } actions: {
+                    if model.lastOperationID != nil {
+                        Button("Ripristina le copie eliminate") { model.restoreLast() }
+                    }
+                }
             } else {
                 List {
                     ForEach(model.groups) { g in
@@ -115,6 +131,9 @@ struct DuplicatesView: View {
                 }
                 HStack {
                     Text(model.status).font(.callout).foregroundStyle(.secondary)
+                    if model.lastOperationID != nil {
+                        Button("Ripristina") { model.restoreLast() }
+                    }
                     Spacer()
                     Text("Selezionati: \(Bytes.format(model.selectedBytes))").monospacedDigit()
                     Button("Sposta nel Cestino…") { confirming = true }
