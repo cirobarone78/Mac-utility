@@ -215,7 +215,13 @@ struct CleanupRow: View {
             if expanded { detail }
         }
         .padding(.vertical, 2)
-        .contextMenu { Button("Mostra nel Finder") { Finder.reveal(finding.item.url) } }
+        .contextMenu {
+            Button("Chiedi all'AI cos'è", systemImage: "sparkles") {
+                ExplainCenter.shared.ask(finding.item.url.lastPathComponent,
+                                         context: "Voce proposta dalla pulizia del disco di un Mac (categoria: \(finding.category.name)). Percorso: \(Finder.short(finding.item.url)). Dimensione: \(Bytes.format(finding.item.bytes)).")
+            }
+            Button("Mostra nel Finder") { Finder.reveal(finding.item.url) }
+        }
     }
 
     private var detail: some View {

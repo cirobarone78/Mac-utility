@@ -27,7 +27,7 @@ extension Color {
 }
 
 enum Module: String, CaseIterable, Identifiable {
-    case dashboard, space, cleanup, duplicates, photos, whatsapp, system, startup, organize, assistant, history, rules
+    case dashboard, space, cleanup, duplicates, photos, whatsapp, system, startup, security, organize, assistant, doctor, history, rules
     var id: String { rawValue }
 
     var title: String {
@@ -42,6 +42,8 @@ enum Module: String, CaseIterable, Identifiable {
         case .startup: "Elementi all'avvio"
         case .organize: "Riordina cartelle"
         case .assistant: "Assistente AI"
+        case .doctor: "Medico del Mac"
+        case .security: "Controllo sicurezza"
         case .history: "Cronologia"
         case .rules: "Regole di sicurezza"
         }
@@ -59,6 +61,8 @@ enum Module: String, CaseIterable, Identifiable {
         case .startup: "power"
         case .organize: "folder.badge.gearshape"
         case .assistant: "brain"
+        case .doctor: "stethoscope"
+        case .security: "checkmark.shield"
         case .history: "clock.arrow.circlepath"
         case .rules: "lock.shield"
         }

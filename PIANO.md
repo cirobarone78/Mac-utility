@@ -23,6 +23,10 @@
 | Libreria di Foto (iCloud Foto) tramite PhotoKit: stessa foto e foto simili, album «da controllare» o «Eliminati di recente» | fatto |
 | WhatsApp: spazio per tipo e per chat, filtri (data, dimensione, copie identiche), anteprime, Cestino con «Ripristina» | fatto |
 | App per iPhone (iOS/): doppioni e foto simili nel rullino, cartelle di File/iCloud Drive, riordino per data | fatto (0.1) |
+| Medico del Mac: «Fai il punto» con consigli dell'AI in ordine di importanza + chat sul Mac | fatto |
+| «Chiedi all'AI cos'è» dal tasto destro (pulizia, avvio, spazio, processi, sicurezza) | fatto |
+| Controllo sicurezza: SIP, Gatekeeper, FileVault, firewall, XProtect, avvio automatico (firma, cartelle insolite, script), app non firmate/non autenticate, profili, estensioni di Chrome | fatto |
+| Rinomina intelligente | prossimo |
 | Cronologia con «Ripristina»: ogni pulizia, eliminazione di duplicati e riordino torna com'era in un clic (anche dal Cestino) | fatto |
 | Icona nella barra dei menu (disco, memoria, CPU, batteria, pulizia rapida) | fatto |
 | Riordina cartelle (per argomento, tipo o mese; file inutili; annulla) | fatto (v0.2) |

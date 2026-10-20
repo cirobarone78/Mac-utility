@@ -2,14 +2,16 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject private var explain = ExplainCenter.shared
 
     var body: some View {
         NavigationSplitView {
             List(selection: $state.selection) {
                 Section("Strumenti") {
-                    ForEach([Module.dashboard, .space, .cleanup, .organize, .duplicates, .photos, .whatsapp, .system, .startup]) { row($0) }
+                    ForEach([Module.dashboard, .space, .cleanup, .organize, .duplicates, .photos, .whatsapp, .system, .startup, .security]) { row($0) }
                 }
                 Section("Intelligenza artificiale") {
+                    row(.doctor)
                     row(.assistant)
                 }
                 Section {
@@ -31,6 +33,8 @@ struct ContentView: View {
                 case .startup: StartupView()
                 case .organize: OrganizeView()
                 case .assistant: AssistantView()
+                case .doctor: DoctorView()
+                case .security: SecurityView()
                 case .history: HistoryView()
                 case .rules: RulesView()
                 }
@@ -39,6 +43,7 @@ struct ContentView: View {
             .scrollContentBackground(.hidden)
             .background(Brand.background)
         }
+        .sheet(item: $explain.current) { q in ExplainSheet(question: q) }
     }
 
     private func row(_ m: Module) -> some View {

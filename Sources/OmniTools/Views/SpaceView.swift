@@ -89,6 +89,10 @@ struct SpaceView: View {
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { model.open(item) }
                     .contextMenu {
+                        Button("Chiedi all'AI cos'è", systemImage: "sparkles") {
+                            ExplainCenter.shared.ask(item.url.lastPathComponent,
+                                                     context: "\(item.isDirectory ? "Cartella" : "File") su un Mac, \(Bytes.format(item.bytes)). Percorso: \(Finder.short(item.url)).")
+                        }
                         Button("Mostra nel Finder") { Finder.reveal(item.url) }
                         Button("Sposta nel Cestino…", role: .destructive) { confirm = item }
                             .disabled(state.policy.isProtected(item.url))

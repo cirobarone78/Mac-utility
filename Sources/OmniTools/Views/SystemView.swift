@@ -29,6 +29,7 @@ struct SystemView: View {
                             Text(Bytes.format(Int64(p.memoryBytes))).monospacedDigit()
                                 .foregroundStyle(.secondary).frame(width: 90, alignment: .trailing)
                         }
+                        .explainMenu(p.name, context: "Processo in esecuzione su un Mac, \(String(format: "%.1f", p.cpu))% di CPU, \(Bytes.format(Int64(p.memoryBytes))) di memoria.")
                     }
                 }
             }
