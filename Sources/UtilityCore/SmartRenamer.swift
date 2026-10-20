@@ -92,7 +92,7 @@ public enum SmartRenamer {
         day.dateFormat = "yyyy-MM-dd"
         for start in stride(from: 0, to: items.count, by: 80) {
             let batch = Array(items[start..<min(start + 80, items.count)])
-            let lines = batch.enumerated().map { i, item -> String in
+            let lines = batch.enumerated().map { (i, item) -> String in
                 var fields: [String: Any] = ["id": i, "nome": item.url.lastPathComponent,
                                              "tipo": FileKind.of(item.url).rawValue,
                                              "data": item.modified.map(day.string(from:)) ?? "sconosciuta"]
