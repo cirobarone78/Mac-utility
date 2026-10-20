@@ -164,13 +164,25 @@ public enum CacheKnowledge {
                              apps: ["com.apple.dt.Xcode"])
 
         case "xcode-devicesupport":
-            return CacheInfo("Supporto per «\(name)»",
+            return CacheInfo("Supporto per iPhone/iPad «\(name)»",
                              what: "Simboli di debug copiati da un iPhone o iPad collegato in passato con questa versione di iOS.",
                              effect: "Se ricolleghi un dispositivo con questa versione, Xcode li ricopia (qualche minuto).",
                              risk: .review)
 
+        case "xcode-apps":
+            let info = NSDictionary(contentsOf: item.url.appendingPathComponent("Contents/Info.plist"))
+            let v = info?["CFBundleShortVersionString"] as? String ?? "?"
+            return CacheInfo("Xcode \(v) (\(name))",
+                             what: "Una copia di Xcode in più rispetto a quella che usi.",
+                             effect: "Se ti serve di nuovo si riscarica da developer.apple.com › Downloads. La versione in uso non è tra queste.",
+                             risk: .review)
+
         case "xcode-archives":
-            return CacheInfo("Archivi Xcode del \(name)",
+            let info = NSDictionary(contentsOf: item.url.appendingPathComponent("Info.plist"))
+            let app = info?["Name"] as? String ?? item.url.deletingPathExtension().lastPathComponent
+            let short = (info?["ApplicationProperties"] as? [String: Any])?["CFBundleShortVersionString"] as? String
+            let when = item.modified.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? ""
+            return CacheInfo("Archivio di «\(app)»\(short.map { " \($0)" } ?? "") del \(when)",
                              what: "Build pubblicate o pronte per gli store, con i simboli per leggere i rapporti di arresto.",
                              effect: "Senza archivio non puoi più decifrare i crash di quella versione pubblicata. Tieni almeno le ultime.",
                              risk: .review)

@@ -455,3 +455,22 @@ final class SmartRenamerTests: XCTestCase {
         XCTAssertTrue(fm.fileExists(atPath: file.path))
     }
 }
+
+final class XcodeVersionsTests: XCTestCase {
+    private func item(_ name: String) -> DiskItem {
+        DiskItem(url: URL(fileURLWithPath: "/x/" + name), bytes: 1, isDirectory: true)
+    }
+
+    func testNewestDeviceSupportIsNeverProposed() {
+        let kept = XcodeVersions.dropNewestVersion([item("16.4 (20E247)"), item("17.0.1 (21A340)"),
+                                                    item("iPhone15,2 17.5 (21F79)"), item("15.7 (19H12)")])
+        XCTAssertEqual(Set(kept.map(\.url.lastPathComponent)), ["16.4 (20E247)", "17.0.1 (21A340)", "15.7 (19H12)"])
+        XCTAssertTrue(XcodeVersions.dropNewestVersion([item("17.0 (21A329)")]).isEmpty)   // una sola: si tiene
+    }
+
+    func testVersionCompare() {
+        XCTAssertEqual(XcodeVersions.version(in: "Xcode 16.2.1 beta"), [16, 2, 1])
+        XCTAssertTrue(XcodeVersions.isNewer([17, 0, 1], than: [17, 0]))
+        XCTAssertFalse(XcodeVersions.isNewer([16, 9], than: [17]))
+    }
+}

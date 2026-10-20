@@ -9,6 +9,23 @@ public struct DoctorFinding: Codable, Identifiable, Hashable, Sendable {
     public let priority: String
     /// Schermata di OmniTools che risolve il problema (vedi `DoctorReport.actions`).
     public let action: String
+    /// Elementi precisi (identificativi della fotografia) che il consiglio propone di spostare nel Cestino.
+    public let items: [String]
+}
+
+/// Un elemento su cui il Medico può agire direttamente (sempre tramite Cestino e conferma).
+public struct DoctorItem: Identifiable, Hashable, Sendable {
+    public let id: String          // "c12", "d3"…
+    public let title: String
+    public let detail: String
+    public let item: DiskItem
+    public let risky: Bool
+}
+
+/// La fotografia del Mac: il testo inviato a Claude e gli elementi su cui si può agire.
+public struct DoctorSnapshot: Sendable {
+    public let text: String
+    public let items: [String: DoctorItem]
 }
 
 public struct DoctorReport: Codable, Sendable {
@@ -24,8 +41,16 @@ public struct DoctorReport: Codable, Sendable {
 public enum MacDoctor {
     /// - Parameter system: righe già pronte sullo stato del sistema (memoria, CPU, batteria…), fornite dall'app.
     public static func snapshot(policy: SafetyPolicy, system: String, home: String = NSHomeDirectory(),
-                                progress: (String) -> Void = { _ in }) -> String {
+                                progress: (String) -> Void = { _ in }) -> DoctorSnapshot {
         var lines: [String] = ["# Fotografia del Mac", "macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)", system]
+        var actionable: [String: DoctorItem] = [:]
+        let day = DateFormatter()
+        day.dateFormat = "yyyy-MM-dd"
+        func describe(_ d: DoctorItem) -> String {
+            "[\(d.id)] \(d.title) · \(Bytes.format(d.item.bytes))"
+                + (d.item.modified.map { " · ultima modifica \(day.string(from: $0))" } ?? "")
+                + (d.risky ? " · da controllare" : "")
+        }
 
         if let v = try? URL(fileURLWithPath: home).resourceValues(forKeys: [.volumeTotalCapacityKey,
                                                                             .volumeAvailableCapacityForImportantUsageKey]) {
@@ -38,8 +63,14 @@ public enum MacDoctor {
         for (name, items) in Dictionary(grouping: findings, by: { $0.category.name }).sorted(by: { $0.key < $1.key }) {
             lines.append("- \(name): \(Bytes.format(items.reduce(0) { $0 + $1.item.bytes })) in \(items.count) voci")
         }
-        let biggest = findings.sorted { $0.item.bytes > $1.item.bytes }.prefix(8)
-        lines.append("Voci più pesanti: " + biggest.map { "\($0.info.title) (\(Bytes.format($0.item.bytes)))" }.joined(separator: "; "))
+        // Le 60 voci più pesanti diventano elementi su cui il Medico può agire.
+        lines.append("Elementi eliminabili (identificativo, nome, peso; la versione più recente di Xcode, dei supporti dispositivo e degli archivi è già esclusa):")
+        for (i, f) in findings.sorted(by: { $0.item.bytes > $1.item.bytes }).prefix(60).enumerated() {
+            let d = DoctorItem(id: "c\(i + 1)", title: "\(f.category.name): \(f.info.title)", detail: f.info.effect,
+                               item: f.item, risky: f.risk == .review)
+            actionable[d.id] = d
+            lines.append(describe(d))
+        }
 
         let scanner = DiskScanner()
         for (label, sub) in [("Download", "Downloads"), ("Scrivania", "Desktop"), ("Filmati", "Movies")] {
@@ -49,8 +80,13 @@ public enum MacDoctor {
             guard !kids.isEmpty else { continue }
             let total = kids.reduce(0) { $0 + $1.bytes }
             lines.append("\n## \(label): \(Bytes.format(total)) in \(kids.count) elementi")
-            lines.append("Più grandi: " + kids.prefix(6).map { "\($0.url.lastPathComponent) (\(Bytes.format($0.bytes)))" }
-                .joined(separator: "; "))
+            lines.append("Più grandi (file personali: proponi solo installer, archivi già estratti o copie evidenti):")
+            for k in kids.prefix(8) where !policy.isProtected(k.url, home: home) {
+                let d = DoctorItem(id: "d\(actionable.count + 1)", title: "\(label): \(k.url.lastPathComponent)",
+                                   detail: "Elemento personale nella cartella \(label).", item: k, risky: true)
+                actionable[d.id] = d
+                lines.append(describe(d))
+            }
         }
 
         let trash = URL(fileURLWithPath: home).appendingPathComponent(".Trash")
@@ -62,7 +98,7 @@ public enum MacDoctor {
         lines.append("\n## Elementi all'avvio (\(startup.count))")
         lines.append(startup.prefix(40).map { "\($0.label) [\($0.scope.rawValue)\($0.disabled ? ", disattivato" : "")]" }
             .joined(separator: "; "))
-        return lines.joined(separator: "\n")
+        return DoctorSnapshot(text: lines.joined(separator: "\n"), items: actionable)
     }
 
     static let doctorSystem = """
@@ -75,6 +111,11 @@ public enum MacDoctor {
     foto e cloud), whatsapp, sistema (memoria/processore), avvio (elementi all'avvio), sicurezza, nessuna. \
     "summary": 1-2 frasi sullo stato generale. Non inventare dati che non ci sono; se il Mac è in ordine \
     dillo. Prudenza: non suggerire mai di eliminare documenti personali.
+    "items": gli identificativi tra parentesi quadre (es. "c3", "d1") degli elementi precisi che il consiglio \
+    propone di spostare nel Cestino; OmniTools li mostrerà all'utente e li sposterà solo dopo la sua conferma. \
+    Usa solo identificativi presenti nella fotografia; lista vuota se il consiglio non riguarda elementi \
+    precisi. Nel "detail" cita gli elementi con il loro nome e la versione (es. "Supporto per iOS 16.4"), \
+    così l'utente sa esattamente cosa verrà tolto.
     """
 
     static let schema: [String: Any] = [
@@ -83,9 +124,10 @@ public enum MacDoctor {
             "summary": ["type": "string"],
             "findings": ["type": "array", "items": [
                 "type": "object", "additionalProperties": false,
-                "required": ["title", "detail", "priority", "action"],
+                "required": ["title", "detail", "priority", "action", "items"],
                 "properties": [
                     "title": ["type": "string"], "detail": ["type": "string"],
+                    "items": ["type": "array", "items": ["type": "string"]],
                     "priority": ["type": "string", "enum": ["alta", "media", "bassa"]],
                     "action": ["type": "string", "enum": DoctorReport.actions],
                 ],

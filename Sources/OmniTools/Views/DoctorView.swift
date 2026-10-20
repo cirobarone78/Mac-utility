@@ -3,7 +3,11 @@ import UtilityCore
 
 @MainActor
 final class DoctorModel: ObservableObject {
-    @Published var snapshot: String?
+    @Published var snapshot: DoctorSnapshot?
+    /// Elementi spuntati per ogni consiglio (preselezionati quelli proposti dall'AI).
+    @Published var chosen: [String: Set<String>] = [:]
+    /// Esito di ogni consiglio eseguito: messaggio e operazione da poter ripristinare.
+    @Published var done: [String: (message: String, operationID: String?)] = [:]
     @Published var report: DoctorReport?
     @Published var working = false
     @Published var status = ""
@@ -26,8 +30,12 @@ final class DoctorModel: ObservableObject {
             snapshot = snap
             status = "Chiedo a Claude…"
             do {
-                let (r, reply) = try await MacDoctor.diagnose(snapshot: snap, client: client)
+                let (r, reply) = try await MacDoctor.diagnose(snapshot: snap.text, client: client)
                 report = r
+                done = [:]
+                // Solo identificativi davvero presenti nella fotografia.
+                chosen = Dictionary(r.findings.map { f in (f.id, Set(f.items.filter { snap.items[$0] != nil })) },
+                                    uniquingKeysWith: { a, b in a.union(b) })
                 cost += reply.costUSD
             } catch {
                 self.error = error.localizedDescription
@@ -38,7 +46,7 @@ final class DoctorModel: ObservableObject {
     }
 
     nonisolated static func collect(policy: SafetyPolicy, system: String,
-                                    progress: @escaping @Sendable (String) -> Void) async -> String {
+                                    progress: @escaping @Sendable (String) -> Void) async -> DoctorSnapshot {
         MacDoctor.snapshot(policy: policy, system: system, progress: progress)
     }
 
@@ -52,7 +60,7 @@ final class DoctorModel: ObservableObject {
         let history = chat
         let box = WeakRef(self)
         Task {
-            let snap: String
+            let snap: DoctorSnapshot
             if let s = snapshot {
                 snap = s
             } else {
@@ -64,7 +72,7 @@ final class DoctorModel: ObservableObject {
                 status = ""
             }
             do {
-                let reply = try await MacDoctor.chat(snapshot: snap, history: history, client: client)
+                let reply = try await MacDoctor.chat(snapshot: snap.text, history: history, client: client)
                 chat.append(ClaudeMessage(role: "assistant", text: reply.text))
                 cost += reply.costUSD
             } catch {
@@ -75,12 +83,43 @@ final class DoctorModel: ObservableObject {
     }
 }
 
+extension DoctorModel {
+    func items(for f: DoctorFinding) -> [DoctorItem] {
+        f.items.compactMap { snapshot?.items[$0] }
+    }
+
+    func selectedItems(for f: DoctorFinding) -> [DoctorItem] {
+        items(for: f).filter { chosen[f.id]?.contains($0.id) == true }
+    }
+
+    func toggle(_ id: String, in f: DoctorFinding) {
+        var set = chosen[f.id] ?? []
+        if set.contains(id) { set.remove(id) } else { set.insert(id) }
+        chosen[f.id] = set
+    }
+
+    /// Il Medico esegue il consiglio: sposta nel Cestino gli elementi spuntati (annullabile).
+    func execute(_ f: DoctorFinding, policy: SafetyPolicy) {
+        let items = selectedItems(for: f).map(\.item)
+        let r = SafeRemover(policy: policy).moveToTrash(items, kind: "Medico del Mac")
+        var msg = "Fatto: \(r.moved.count) elementi nel Cestino (\(Bytes.format(r.bytes)))."
+        if !r.skipped.isEmpty { msg += " Non spostati: \(r.skipped.count) (\(r.skipped[0].reason))." }
+        done[f.id] = (msg, r.operationID)
+    }
+
+    func restore(_ f: DoctorFinding) {
+        guard let id = done[f.id]?.operationID else { return }
+        done[f.id] = (Restore.run(id) ?? "Già ripristinato.", nil)
+    }
+}
+
 struct DoctorView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var monitor: SystemMonitor
     @StateObject private var model = DoctorModel()
     @State private var input = ""
     @State private var showSnapshot = false
+    @State private var confirming: DoctorFinding?
 
     private var systemLines: String {
         let s = monitor.snapshot
@@ -144,10 +183,20 @@ struct DoctorView: View {
             }
             .padding(16)
         }
+        .confirmationDialog("Spostare nel Cestino gli elementi spuntati?",
+                            isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
+                            presenting: confirming) { f in
+            Button("Sposta nel Cestino (\(Bytes.format(model.selectedItems(for: f).reduce(0) { $0 + $1.item.bytes })))",
+                   role: .destructive) { model.execute(f, policy: state.policy) }
+        } message: { f in
+            Text(model.selectedItems(for: f).prefix(8).map { "• " + $0.title }.joined(separator: "\n")
+                 + (model.selectedItems(for: f).count > 8 ? "\n…e altri \(model.selectedItems(for: f).count - 8)" : "")
+                 + "\n\nTutto resta recuperabile con «Ripristina» finché non svuoti il Cestino.")
+        }
         .sheet(isPresented: $showSnapshot) {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Dati inviati a Claude").font(.headline)
-                ScrollView { Text(model.snapshot ?? "").font(.system(.caption, design: .monospaced)).textSelection(.enabled) }
+                ScrollView { Text(model.snapshot?.text ?? "").font(.system(.caption, design: .monospaced)).textSelection(.enabled) }
                 HStack { Spacer(); Button("Chiudi") { showSnapshot = false }.keyboardShortcut(.defaultAction) }
             }
             .padding(20).frame(width: 700, height: 500)
@@ -161,16 +210,66 @@ struct DoctorView: View {
     }
 
     private func finding(_ f: DoctorFinding) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Badge(text: f.priority, color: f.priority == "alta" ? .red : f.priority == "media" ? .orange : Brand.accent)
-                .frame(width: 50, alignment: .leading)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(f.title).font(.headline)
-                Text(f.detail).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        let items = model.items(for: f)
+        let selected = model.selectedItems(for: f)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                Badge(text: f.priority, color: f.priority == "alta" ? .red : f.priority == "media" ? .orange : Brand.accent)
+                    .frame(width: 50, alignment: .leading)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(f.title).font(.headline)
+                    Text(f.detail).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                if let target = Self.module(for: f.action) {
+                    Button("Apri \(target.title)") { state.selection = target }.buttonStyle(.link)
+                }
             }
-            Spacer()
-            if let target = Self.module(for: f.action) {
-                Button("Vai a \(target.title)") { state.selection = target }
+            if !items.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Cosa verrebbe spostato nel Cestino:").font(.caption.bold()).foregroundStyle(.secondary)
+                    ForEach(items) { d in
+                        HStack(alignment: .top, spacing: 8) {
+                            Toggle("", isOn: Binding(get: { model.chosen[f.id]?.contains(d.id) == true },
+                                                     set: { _ in model.toggle(d.id, in: f) }))
+                                .labelsHidden()
+                                .disabled(model.done[f.id] != nil)
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text(d.title).lineLimit(2)
+                                    if d.risky { Badge(text: "da controllare", color: .orange) }
+                                }
+                                Text([Bytes.format(d.item.bytes),
+                                      d.item.modified.map { "ultima modifica " + $0.formatted(date: .abbreviated, time: .omitted) },
+                                      Finder.short(d.item.url)].compactMap { $0 }.joined(separator: " · "))
+                                    .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                            }
+                            Spacer()
+                        }
+                        .contextMenu {
+                            Button("Mostra nel Finder") { Finder.reveal(d.item.url) }
+                            Button("Chiedi all'AI cos'è", systemImage: "sparkles") {
+                                ExplainCenter.shared.ask(d.item.url.lastPathComponent, context: d.title + ". " + d.detail)
+                            }
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Brand.accent.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+
+                HStack {
+                    if let result = model.done[f.id] {
+                        Label(result.message, systemImage: "checkmark.circle").foregroundStyle(Brand.accent)
+                        if result.operationID != nil { Button("Ripristina") { model.restore(f) } }
+                    } else {
+                        Button("Fallo tu: sposta nel Cestino \(selected.count) elementi (\(Bytes.format(selected.reduce(0) { $0 + $1.item.bytes })))") {
+                            confirming = f
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(selected.isEmpty)
+                    }
+                    Spacer()
+                }
             }
         }
         .padding(12)
