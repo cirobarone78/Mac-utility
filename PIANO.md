@@ -19,6 +19,7 @@
 | Stato del sistema (uptime, temperatura, processi più pesanti) | fatto |
 | Elementi all'avvio (LaunchAgents/Daemons, sola lettura) | fatto |
 | Regole di sicurezza (modificabili dall'app) + registro | fatto |
+| Icona nella barra dei menu (disco, memoria, CPU, batteria, pulizia rapida) | fatto |
 | Riordina cartelle (per argomento, tipo o mese; file inutili; annulla) | fatto (v0.2) |
 | Assistente AI (Claude: proposte di spostamento ed eliminazione, approvate una per una) | fatto (v0.3) |
 
@@ -46,7 +47,7 @@ Limite: senza AI l'argomento si ricava solo dai nomi dei file. Con la v0.3 l'ass
 
 ## Idee per le versioni successive (da scegliere)
 
-- **Icona nella barra dei menu**: spazio libero e memoria sempre visibili, pulizia rapida.
+
 - **Disinstallazione completa delle app**: trascini un'app e vedi anche preferenze, cache e supporto che lascia in `~/Library`.
 - **Mappa grafica del disco** (a riquadri o a cerchi concentrici) al posto dell'elenco.
 - **Pulizia per sviluppatori**: trova e pesa le cartelle `node_modules`, `.build`, `build` e `Pods` nei progetti non toccati da mesi; elimina i simulatori non più disponibili (`xcrun simctl delete unavailable`); cache di Homebrew (`brew cleanup`).
