@@ -14,7 +14,7 @@ struct MenuBarLabel: View {
                 Text(Bytes.format(monitor.snapshot.diskFree)).monospacedDigit()
             }
         }
-        .onAppear { monitor.start(every: 5) }
+        .onAppear { monitor.start() }
     }
 
     static let icon: NSImage = {
@@ -71,9 +71,9 @@ struct MenuBarPanel: View {
             }
 
             meter("Disco", value: s.diskTotal > 0 ? Double(s.diskTotal - s.diskFree) / Double(s.diskTotal) : 0,
-                  detail: "\(Bytes.format(s.diskFree)) liberi")
+                  detail: s.diskTotal > 0 ? "\(Bytes.format(s.diskFree)) liberi" : "–")
             meter("Memoria", value: Double(s.memoryUsed) / Double(max(1, s.memoryTotal)),
-                  detail: Bytes.format(Int64(s.memoryUsed)))
+                  detail: s.memoryUsed > 0 ? Bytes.format(Int64(s.memoryUsed)) : "–")
             meter("Processore", value: s.cpuUsage, detail: "\(Int(s.cpuUsage * 100))%")
             if let b = s.battery {
                 meter("Batteria", value: b, detail: s.charging ? "in carica" : "\(Int(b * 100))%", invert: true)
@@ -102,7 +102,7 @@ struct MenuBarPanel: View {
         }
         .padding(16)
         .frame(width: 300)
-        .onAppear { monitor.start(every: 5) }
+        .onAppear { monitor.start() }
     }
 
     @ViewBuilder

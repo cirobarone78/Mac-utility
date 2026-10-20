@@ -2,12 +2,12 @@ import SwiftUI
 import UtilityCore
 
 struct SystemView: View {
-    @StateObject private var monitor = SystemMonitor()
+    @EnvironmentObject var monitor: SystemMonitor
 
     var body: some View {
         let s = monitor.snapshot
         VStack(alignment: .leading, spacing: 0) {
-            ModuleHeader(module: .system, subtitle: "Aggiornato ogni 2 secondi")
+            ModuleHeader(module: .system, subtitle: "Aggiornato ogni 3 secondi")
             Form {
                 Section("Generale") {
                     LabeledContent("Acceso da", value: Self.duration(s.uptime))
@@ -15,7 +15,7 @@ struct SystemView: View {
                     LabeledContent("Processore", value: "\(Int(s.cpuUsage * 100))%")
                     LabeledContent("Memoria usata",
                                    value: "\(Bytes.format(Int64(s.memoryUsed))) di \(Bytes.format(Int64(s.memoryTotal)))")
-                    LabeledContent("Disco libero", value: Bytes.format(s.diskFree))
+                    LabeledContent("Disco libero", value: s.diskTotal > 0 ? Bytes.format(s.diskFree) : "–")
                     if let b = s.battery {
                         LabeledContent("Batteria", value: "\(Int(b * 100))%\(s.charging ? " (in carica)" : "")")
                     }
@@ -34,8 +34,6 @@ struct SystemView: View {
             }
             .formStyle(.grouped)
         }
-        .onAppear { monitor.start() }
-        .onDisappear { monitor.stop() }
     }
 
     static func duration(_ t: TimeInterval) -> String {

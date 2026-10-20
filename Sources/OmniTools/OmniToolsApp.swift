@@ -29,6 +29,8 @@ struct OmniToolsApp: App {
         WindowGroup(Brand.name, id: "main") {
             ContentView()
                 .environmentObject(state)
+                .environmentObject(monitor)
+                .onAppear { monitor.start() }
                 .frame(minWidth: 960, minHeight: 620)
                 .tint(Brand.accent)
         }
