@@ -2,10 +2,28 @@ import SwiftUI
 import AppKit
 import UtilityCore
 
-/// Nome e colori in un solo posto: da personalizzare.
+/// Nome e colori di OmniNeo (stessi valori di site.css / site-refresh.css).
+/// Ogni colore ha la variante scura e quella chiara e segue il tema del Mac.
 enum Brand {
-    static let name = "Mac Utility"
-    static let accent = Color(red: 0.08, green: 0.72, blue: 0.65)   // teal
+    static let name = "OmniTools"
+
+    /// Teal OmniNeo: #2dd4c8 su scuro, #0f766e su chiaro.
+    static let accent = Color(dark: 0x2DD4C8, light: 0x0F766E)
+    /// Sfondo: blu notte #04070f su scuro, «cool-paper» #eef2f6 su chiaro.
+    static let background = Color(dark: 0x04070F, light: 0xEEF2F6)
+    /// Riquadri: #0c1628 su scuro, bianco su chiaro.
+    static let card = Color(dark: 0x0C1628, light: 0xFFFFFF)
+}
+
+extension Color {
+    init(dark: UInt32, light: UInt32) {
+        self.init(nsColor: NSColor(name: nil) { appearance in
+            let hex = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+            return NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+                           green: CGFloat((hex >> 8) & 0xFF) / 255,
+                           blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+        })
+    }
 }
 
 enum Module: String, CaseIterable, Identifiable {

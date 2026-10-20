@@ -1,7 +1,7 @@
 import Foundation
 
 /// Regole di sicurezza: cosa l'app non deve MAI toccare, nemmeno su richiesta.
-/// Salvate in ~/Library/Application Support/MacUtility/regole.json, modificabili dall'utente.
+/// Salvate in ~/Library/Application Support/OmniTools/regole.json, modificabili dall'utente.
 public struct SafetyPolicy: Codable, Equatable, Sendable {
     /// Percorsi intoccabili (anche tutto ciò che contengono). Accetta "~" per la home.
     public var neverTouchPaths: [String]
@@ -55,7 +55,7 @@ public struct SafetyPolicy: Codable, Equatable, Sendable {
 
     public static var defaultFileURL: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("MacUtility", isDirectory: true)
+            .appendingPathComponent("OmniTools", isDirectory: true)
             .appendingPathComponent("regole.json")
     }
 

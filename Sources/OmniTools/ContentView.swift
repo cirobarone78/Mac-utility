@@ -18,17 +18,22 @@ struct ContentView: View {
             }
             .navigationSplitViewColumnWidth(min: 210, ideal: 230)
         } detail: {
-            switch state.selection ?? .dashboard {
-            case .dashboard: DashboardView()
-            case .space: SpaceView()
-            case .cleanup: CleanupView()
-            case .duplicates: DuplicatesView()
-            case .system: SystemView()
-            case .startup: StartupView()
-            case .organize: ComingSoonView(module: .organize)
-            case .assistant: ComingSoonView(module: .assistant)
-            case .rules: RulesView()
+            Group {
+                switch state.selection ?? .dashboard {
+                case .dashboard: DashboardView()
+                case .space: SpaceView()
+                case .cleanup: CleanupView()
+                case .duplicates: DuplicatesView()
+                case .system: SystemView()
+                case .startup: StartupView()
+                case .organize: ComingSoonView(module: .organize)
+                case .assistant: ComingSoonView(module: .assistant)
+                case .rules: RulesView()
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .scrollContentBackground(.hidden)
+            .background(Brand.background)
         }
     }
 

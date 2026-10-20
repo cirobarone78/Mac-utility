@@ -32,7 +32,7 @@ public struct SafeRemover: Sendable {
     }
 }
 
-/// Registro delle operazioni: ~/Library/Application Support/MacUtility/registro.log
+/// Registro delle operazioni: ~/Library/Application Support/OmniTools/registro.log
 public enum Journal {
     public static var fileURL: URL {
         SafetyPolicy.defaultFileURL.deletingLastPathComponent().appendingPathComponent("registro.log")

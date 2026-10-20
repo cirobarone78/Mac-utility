@@ -1,4 +1,4 @@
-# Piano – Mac Utility
+# Piano – OmniTools
 
 ## Principi
 
@@ -51,7 +51,7 @@
 
 ## Personalizzazione
 
-- Nome, icona e colore: in `Sources/MacUtility/AppState.swift` (enum `Brand`). Da decidere.
+- Nome, icona e colore: in `Sources/OmniTools/AppState.swift` (enum `Brand`). Da decidere.
 - Regole per le tue cartelle: dall'app (Regole di sicurezza) o in `regole.json`.
 
 ## Progetti open source usati come spunto

@@ -72,7 +72,8 @@ struct Gauge3: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12))
+        .background(Brand.card, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Brand.accent.opacity(0.18)))
         .animation(.easeOut(duration: 0.4), value: value)
     }
 }
