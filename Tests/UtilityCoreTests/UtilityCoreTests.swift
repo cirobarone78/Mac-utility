@@ -375,3 +375,28 @@ final class PhotoLibraryGroupingTests: XCTestCase {
         XCTAssertEqual(g.first?.photos.first?.id, "preferita")
     }
 }
+
+final class WhatsAppScannerTests: XCTestCase {
+    func testScanMediaByChatSkippingDatabase() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("wa-" + UUID().uuidString)
+        defer { try? fm.removeItem(at: root) }
+        let media = root.appendingPathComponent("Message/Media")
+        let chatA = media.appendingPathComponent("393331112222@s.whatsapp.net/a/b")
+        let group = media.appendingPathComponent("120363000@g.us/c")
+        try fm.createDirectory(at: chatA, withIntermediateDirectories: true)
+        try fm.createDirectory(at: group, withIntermediateDirectories: true)
+        let big = Data(repeating: 7, count: 10_000)
+        try big.write(to: chatA.appendingPathComponent("foto.jpg"))
+        try big.write(to: group.appendingPathComponent("inoltrata.jpg"))          // stessa foto in un gruppo
+        try Data(repeating: 1, count: 6000).write(to: chatA.appendingPathComponent("vocale.opus"))
+        try Data("db".utf8).write(to: root.appendingPathComponent("ChatStorage.sqlite"))   // mai toccato
+
+        let r = WhatsAppScanner.scan(root: root, policy: SafetyPolicy(neverTouchPaths: [], neverTouchNames: []))
+        XCTAssertEqual(r.media.count, 3)
+        XCTAssertFalse(r.media.contains { $0.url.pathExtension == "sqlite" })
+        XCTAssertEqual(Set(r.media.map(\.chatName)), ["+393331112222", "Gruppo"])
+        XCTAssertEqual(r.media.first { $0.url.lastPathComponent == "vocale.opus" }?.kind, .audio)
+        XCTAssertEqual(r.duplicates.count, 1)
+    }
+}
