@@ -16,6 +16,22 @@ final class AssistantModel: ObservableObject {
         AIAdvisor(model: model, apiKey: Keychain.readKey() ?? "", instructions: instructions)
     }
 
+    /// Prepara il testo da mostrare fuori dal thread principale: in cartelle grandi richiede tempo.
+    func showPreview(_ advisor: AIAdvisor, policy: SafetyPolicy) {
+        working = true
+        status = "Preparo l'elenco dei file…"
+        let target = folder
+        Task {
+            preview = await Self.makePreview(advisor, folder: target, policy: policy)
+            working = false
+            status = ""
+        }
+    }
+
+    nonisolated static func makePreview(_ advisor: AIAdvisor, folder: URL, policy: SafetyPolicy) async -> String {
+        advisor.preview(for: folder, policy: policy)
+    }
+
     func ask(model: AIModel, instructions: String, policy: SafetyPolicy) {
         working = true
         message = nil
@@ -141,8 +157,7 @@ struct AssistantView: View {
                 TextField("Indicazioni personali (facoltative), es. «non eliminare nulla che riguardi OmniNeo»",
                           text: $instructions)
                 Button("Vedi cosa invio") {
-                    model.preview = model.advisor(model: aiModel, instructions: instructions)
-                        .preview(for: model.folder, policy: state.policy)
+                    model.showPreview(model.advisor(model: aiModel, instructions: instructions), policy: state.policy)
                 }
                 Button("Chiedi all'assistente") {
                     model.ask(model: aiModel, instructions: instructions, policy: state.policy)
