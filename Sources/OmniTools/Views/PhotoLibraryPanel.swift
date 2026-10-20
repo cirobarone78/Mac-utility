@@ -115,9 +115,8 @@ struct PhotoLibraryPanel: View {
             HStack(spacing: 14) {
                 HStack(spacing: 6) {
                     Text("Somiglianza")
-                    Slider(value: $model.similarity, in: 0...12, step: 1) { editing in
-                        if !editing { model.regroup() }
-                    }
+                    Slider(value: $model.similarity, in: 0...12, step: 1,
+                           onEditingChanged: { editing in if !editing { model.regroup() } })
                     .frame(width: 140)
                     Text(model.similarity <= 3 ? "quasi identiche" : model.similarity <= 7 ? "molto simili" : "simili")
                         .foregroundStyle(.secondary).frame(width: 100, alignment: .leading)
