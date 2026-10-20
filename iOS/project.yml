@@ -15,6 +15,7 @@ targets:
     type: application
     platform: iOS
     sources: [OmniToolsiOS]
+    scheme: {}            # schema condiviso: serve a xcodebuild per l'archivio TestFlight
     dependencies:
       - package: OmniTools
         product: UtilityCore
@@ -22,7 +23,7 @@ targets:
       base:
         PRODUCT_NAME: OmniTools
         PRODUCT_BUNDLE_IDENTIFIER: app.omnitools.ios
-        MARKETING_VERSION: "0.1"
+        MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
@@ -34,3 +35,5 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
+        # Nessuna crittografia propria: evita la domanda sull'esportazione a ogni build.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO

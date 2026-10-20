@@ -56,3 +56,5 @@ Nella cartella `iOS/`: doppioni e foto simili nel rullino (iCloud Foto) e nelle 
 ```
 
 In Xcode: collega l'iPhone, sceglilo come destinazione in alto e premi ⌘R. La prima volta, sull'iPhone: Impostazioni › Generali › VPN e gestione dispositivi › autorizza lo sviluppatore, e attiva la Modalità sviluppatore se richiesta.
+
+Per installarla senza cavo e aggiornarla da sola: TestFlight, vedi [iOS/TESTFLIGHT.md](iOS/TESTFLIGHT.md) (`./scripts/ios-testflight.sh`).
