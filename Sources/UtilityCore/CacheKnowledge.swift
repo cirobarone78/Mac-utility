@@ -132,6 +132,12 @@ public enum CacheKnowledge {
         "familycircle": CacheInfo("In famiglia", what: "Dati di Condivisione in famiglia.", effect: "Non va toccato.", neverPropose: true),
     ]
 
+    /// true per gli elementi di sistema che non vanno mai proposti (iCloud, In famiglia…).
+    public static func isNeverPropose(_ name: String) -> Bool {
+        let key = name.lowercased()
+        return known.contains { $0.value.neverPropose && (key == $0.key || key.hasPrefix($0.key + ".")) }
+    }
+
     /// Spiega una voce trovata dalla pulizia.
     public static func info(for item: DiskItem, category: CleanupCategory,
                             appName: (String) -> String? = { _ in nil }) -> CacheInfo {

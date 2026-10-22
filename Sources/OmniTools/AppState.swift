@@ -28,6 +28,7 @@ extension Color {
 
 enum Module: String, CaseIterable, Identifiable {
     case dashboard, space, cleanup, duplicates, photos, whatsapp, system, startup, security, organize, assistant, doctor, rename, history, rules
+    case uninstall, updates, privacy, backup, virustotal, breaches
     var id: String { rawValue }
 
     var title: String {
@@ -47,6 +48,12 @@ enum Module: String, CaseIterable, Identifiable {
         case .security: "Controllo sicurezza"
         case .history: "Cronologia"
         case .rules: "Regole di sicurezza"
+        case .uninstall: "Disinstalla app"
+        case .updates: "Aggiornamenti"
+        case .privacy: "Privacy"
+        case .backup: "Backup"
+        case .virustotal: "Seconda opinione"
+        case .breaches: "Furti di dati"
         }
     }
 
@@ -67,6 +74,12 @@ enum Module: String, CaseIterable, Identifiable {
         case .security: "checkmark.shield"
         case .history: "clock.arrow.circlepath"
         case .rules: "lock.shield"
+        case .uninstall: "trash.square"
+        case .updates: "arrow.down.app"
+        case .privacy: "hand.raised"
+        case .backup: "externaldrive.badge.timemachine"
+        case .virustotal: "magnifyingglass.circle"
+        case .breaches: "person.badge.key"
         }
     }
 }
@@ -103,6 +116,23 @@ enum Finder {
         panel.prompt = "Scegli"
         return panel.runModal() == .OK ? panel.url : nil
     }
+
+    /// Scelta di uno o più file (anche app).
+    static func chooseFiles() -> [URL] {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = true
+        panel.treatsFilePackagesAsDirectories = false
+        panel.prompt = "Controlla"
+        return panel.runModal() == .OK ? panel.urls : []
+    }
+
+    static func open(_ link: String) {
+        if let url = URL(string: link) { NSWorkspace.shared.open(url) }
+    }
+
+    static let fullDiskAccessSettings = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
 
     /// Accorcia il percorso sostituendo la home con "~".
     static func short(_ url: URL) -> String {

@@ -6,7 +6,16 @@ public struct OperationRecord: Codable, Identifiable, Sendable, Hashable {
     public struct Move: Codable, Sendable, Hashable {
         public let from: String
         public let to: String
+        /// true quando al ripristino il file attuale va prima spostato nel Cestino
+        /// (es. un database del browser ripulito che torna alla versione di prima).
+        public var replace: Bool?
         public var toTrash: Bool { to.contains("/.Trash/") }
+
+        public init(from: String, to: String, replace: Bool? = nil) {
+            self.from = from
+            self.to = to
+            self.replace = replace
+        }
     }
 
     public let id: String
@@ -93,7 +102,23 @@ public enum OperationLog {
         var result = RestoreResult()
         for move in record.moves.reversed() {
             guard fm.fileExists(atPath: move.to) else { result.missing += 1; continue }
-            guard !fm.fileExists(atPath: move.from) else { result.conflicts += 1; continue }
+            if fm.fileExists(atPath: move.from) {
+                // La versione attuale va nel Cestino (si può sempre recuperare), poi torna quella di prima.
+                guard move.replace == true,
+                      (try? fm.trashItem(at: URL(fileURLWithPath: move.from), resultingItemURL: nil)) != nil
+                else { result.conflicts += 1; continue }
+            }
+            if move.replace == true {
+                // I file di appoggio di un database (-wal, -shm) creati dopo non devono restare
+                // accanto alla versione rimessa a posto.
+                let recorded = Set(record.moves.map(\.from))
+                for suffix in ["-wal", "-shm", "-journal"] {
+                    let side = move.from + suffix
+                    if !recorded.contains(side), fm.fileExists(atPath: side) {
+                        _ = try? fm.trashItem(at: URL(fileURLWithPath: side), resultingItemURL: nil)
+                    }
+                }
+            }
             do {
                 try fm.createDirectory(atPath: (move.from as NSString).deletingLastPathComponent,
                                        withIntermediateDirectories: true)

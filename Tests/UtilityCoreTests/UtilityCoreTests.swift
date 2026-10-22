@@ -474,3 +474,84 @@ final class XcodeVersionsTests: XCTestCase {
         XCTAssertFalse(XcodeVersions.isNewer([16, 9], than: [17]))
     }
 }
+
+final class VersionsTests: XCTestCase {
+    func testCompare() {
+        XCTAssertTrue(Versions.isNewer("2.10.1", than: "2.9"))
+        XCTAssertFalse(Versions.isNewer("1.0", than: "1.0.0"))
+        XCTAssertTrue(Versions.isNewer("1.2b3", than: "1.2b2"))
+        XCTAssertFalse(Versions.isNewer("", than: "1.0"))
+    }
+}
+
+final class BreachCheckTests: XCTestCase {
+    func testRangeResponse() {
+        let body = "0018A45C4D1DEF81644B54AB7F969B88D65:3\r\n00D4F6E8FA6EECAD2A3AA415EEC418D38EC:0\n1E4C9B93F3F0682250B6CF8331B7EE68FD8:42"
+        XCTAssertEqual(BreachCheck.count(in: body, suffix: "1E4C9B93F3F0682250B6CF8331B7EE68FD8"), 42)
+        XCTAssertEqual(BreachCheck.count(in: body, suffix: "FFFF"), 0)
+    }
+}
+
+#if os(macOS)
+final class BrowserSiteTests: XCTestCase {
+    func testRegistrableDomain() {
+        XCTAssertEqual(BrowserCleaner.site(ofHost: ".mail.google.com"), "google.com")
+        XCTAssertEqual(BrowserCleaner.site(ofHost: "www.bbc.co.uk"), "bbc.co.uk")
+        XCTAssertEqual(BrowserCleaner.site(ofHost: "example.it"), "example.it")
+        XCTAssertEqual(BrowserCleaner.site(ofURL: "https://docs.github.com/x?y"), "github.com")
+        XCTAssertNil(BrowserCleaner.site(ofURL: "file:///Users/a/b.html"))
+    }
+}
+
+final class UninstallerTests: XCTestCase {
+    func testMatching() {
+        XCTAssertTrue(AppUninstaller.matches("com.spotify.client.plist", bundleID: "com.spotify.client"))
+        XCTAssertTrue(AppUninstaller.matches("com.spotify.client.helper", bundleID: "com.spotify.client"))
+        XCTAssertFalse(AppUninstaller.matches("com.spotify.clientx", bundleID: "com.spotify.client"))
+        XCTAssertTrue(AppUninstaller.looksLikeBundleID("com.example.App"))
+        XCTAssertFalse(AppUninstaller.looksLikeBundleID("Google"))
+        XCTAssertFalse(AppUninstaller.looksLikeBundleID("my.folder"))
+        XCTAssertEqual(AppUninstaller.groupKey("com.x.App.helper"), "com.x.App")
+    }
+}
+
+final class UpdateParsingTests: XCTestCase {
+    func testAppcast() {
+        let xml = """
+        <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
+        <item><enclosure url="a" sparkle:version="120" sparkle:shortVersionString="1.2"/></item>
+        <item><sparkle:version>130</sparkle:version><sparkle:shortVersionString>1.3</sparkle:shortVersionString></item>
+        <item><sparkle:channel>beta</sparkle:channel><enclosure sparkle:version="200" sparkle:shortVersionString="2.0b1"/></item>
+        </channel></rss>
+        """
+        let items = AppcastParser.parse(Data(xml.utf8))
+        XCTAssertEqual(items.count, 2)
+        XCTAssertEqual(items.last?.shortVersion, "1.3")
+    }
+
+    func testSoftwareUpdate() {
+        let out = """
+        Software Update found the following new or updated software:
+        * Label: macOS Tahoe 26.1-25B78
+        \tTitle: macOS Tahoe 26.1, Version: 26.1, Size: 3500000KiB, Recommended: YES, Action: restart,
+        """
+        let list = UpdateChecker.parseSoftwareUpdate(out)
+        XCTAssertEqual(list.first?.name, "macOS Tahoe 26.1")
+        XCTAssertEqual(list.first?.available, "26.1")
+    }
+}
+
+final class BackupFindingsTests: XCTestCase {
+    func testOldBackupIsCritical() {
+        var r = BackupReport()
+        let now = Date()
+        r.destinations = [.init(id: "1", name: "Disco", lastBackup: now.addingTimeInterval(-40 * 86_400),
+                                bytesAvailable: nil, bytesUsed: nil)]
+        r.lastBackup = r.destinations[0].lastBackup
+        r.autoBackup = true
+        let f = BackupCheck.findings(for: r, now: now)
+        XCTAssertEqual(f.first?.level, .critical)
+        XCTAssertTrue(BackupCheck.findings(for: BackupReport(), now: now).first?.title.contains("non è configurato") == true)
+    }
+}
+#endif

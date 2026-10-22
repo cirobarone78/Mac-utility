@@ -54,6 +54,8 @@ private struct HistoryRow: View {
         case "Doppioni foto", "Riordino foto": Module.photos.icon
         case "WhatsApp": Module.whatsapp.icon
         case "Rinomina": Module.rename.icon
+        case "Disinstallazione": Module.uninstall.icon
+        case "Privacy": Module.privacy.icon
         case "Riordino": Module.organize.icon
         case "Assistente AI": Module.assistant.icon
         case "Analisi spazio": Module.space.icon

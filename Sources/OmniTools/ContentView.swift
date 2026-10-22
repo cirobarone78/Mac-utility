@@ -8,7 +8,11 @@ struct ContentView: View {
         NavigationSplitView {
             List(selection: $state.selection) {
                 Section("Strumenti") {
-                    ForEach([Module.dashboard, .space, .cleanup, .organize, .duplicates, .photos, .whatsapp, .system, .startup, .security]) { row($0) }
+                    ForEach([Module.dashboard, .space, .cleanup, .organize, .duplicates, .photos, .whatsapp,
+                             .uninstall, .updates, .system, .startup]) { row($0) }
+                }
+                Section("Protezione") {
+                    ForEach([Module.security, .virustotal, .breaches, .privacy, .backup]) { row($0) }
                 }
                 Section("Intelligenza artificiale") {
                     row(.doctor)
@@ -39,6 +43,12 @@ struct ContentView: View {
                 case .security: SecurityView()
                 case .history: HistoryView()
                 case .rules: RulesView()
+                case .uninstall: UninstallView()
+                case .updates: UpdatesView()
+                case .privacy: PrivacyView()
+                case .backup: BackupView()
+                case .virustotal: VirusTotalView()
+                case .breaches: BreachesView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -23,6 +23,17 @@ Per sviluppare: `open Package.swift` (si apre in Xcode, schema «OmniTools», po
 
 Serve una chiave API di Anthropic (console.anthropic.com → API Keys): la si inserisce nella schermata «Assistente AI» e resta nel Portachiavi del Mac. In alternativa, la variabile `ANTHROPIC_API_KEY` impostata nello schema di Xcode. All'AI arrivano solo i metadati dei file (nome, tipo, dimensione, date), mai il contenuto.
 
+### Protezione (senza antivirus)
+
+- **Disinstalla app**: toglie l'app con i file che lascia nella Libreria (preferenze, cache, contenitori, avvio automatico) e trova gli avanzi di app già cancellate. Le app di Apple e l'Xcode in uso non si toccano.
+- **Aggiornamenti**: confronta le versioni installate con App Store, aggiornamenti delle app (Sparkle), Homebrew e macOS. Non installa nulla da solo.
+- **Backup**: controlla Time Machine (ultimo backup, backup automatici, cartelle escluse, spazio sul disco).
+- **Privacy**: chi ha fotocamera, microfono, schermo e Accesso completo al disco, con il pulsante per togliere il permesso; cronologia e cookie dei browser, sito per sito (il browser va chiuso; i file originali vanno nel Cestino, quindi «Ripristina» funziona).
+- **Seconda opinione**: confronta l'impronta di un file con VirusTotal (circa 70 antivirus). Serve una chiave gratuita; il file non lascia il Mac.
+- **Furti di dati**: controlla una password con Have I Been Pwned (gratis e anonimo) e, con la chiave a pagamento, il tuo indirizzo email.
+
+Le chiavi di VirusTotal e Have I Been Pwned stanno nel Portachiavi, come quella di Anthropic.
+
 ### Accesso completo al disco
 
 Per misurare anche le cartelle protette da macOS (Mail, Messaggi, alcune cache), aggiungi l'app (o Xcode/Terminale, se la lanci da lì) in **Impostazioni di Sistema › Privacy e sicurezza › Accesso completo al disco**. Senza, quelle cartelle vengono semplicemente saltate.
