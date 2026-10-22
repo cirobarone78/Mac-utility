@@ -128,6 +128,7 @@ struct MaintenanceReport: Codable {
     var backupConfigured = true
     var diskFree: Int64?
     var batteryCapacity: Double?
+    var suggestChargeLimit: Bool? = nil
     var lines: [String] = []
 }
 
@@ -172,11 +173,16 @@ final class Maintenance: ObservableObject {
         timer = Task {
             try? await Task.sleep(for: .seconds(120))   // lascia avviare il Mac in pace
             while !Task.isCancelled {
+                // Un campione all'ora delle abitudini di carica (serve al consiglio sul limite).
+                let battery = await Self.readBattery()
+                ChargeHabits.record(battery)
                 if enabled, isDue { await run(notify: true) }
                 try? await Task.sleep(for: .seconds(3600))
             }
         }
     }
+
+    nonisolated static func readBattery() async -> BatteryHealth { Battery.read() }
 
     var isDue: Bool {
         guard let date = last?.date else { return true }
@@ -231,6 +237,9 @@ final class Maintenance: ObservableObject {
         let battery = Battery.read()
         r.batteryCapacity = battery.maxCapacity
         if let c = battery.maxCapacity, c < 0.8 { r.lines.append("batteria al \(Int(c * 100))%") }
+        let suggest = ChargeHabits.summary().suggestsLimit && battery.chargeLimit == nil && !battery.holdingCharge
+        r.suggestChargeLimit = suggest
+        if suggest { r.lines.append("il Mac sta quasi sempre al 100% in carica: imposta il limite all'80%") }
         return r
     }
 

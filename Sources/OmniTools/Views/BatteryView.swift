@@ -5,6 +5,7 @@ import UtilityCore
 final class BatteryModel: ObservableObject {
     @Published var health: BatteryHealth?
     @Published var users: [EnergyUser] = []
+    @Published var habits = ChargeHabits.summary()
     @Published var loading = false
 
     func load() {
@@ -13,6 +14,8 @@ final class BatteryModel: ObservableObject {
             let r = await Self.read()
             health = r.0
             users = r.1
+            ChargeHabits.record(r.0)
+            habits = ChargeHabits.summary()
             loading = false
         }
     }
@@ -47,6 +50,9 @@ struct BatteryView: View {
                             Label(a.text, systemImage: a.warning ? "exclamationmark.triangle.fill" : "checkmark.circle")
                                 .foregroundStyle(a.warning ? Color.orange : Color.primary)
                         }
+                    }
+                    Section("Limite di carica") {
+                        chargeLimit(b)
                     }
                     Section("Adesso") {
                         row("Stato", b.charging ? "in carica" : b.pluggedIn ? "collegato, non in carica" : "a batteria")
@@ -84,6 +90,42 @@ struct BatteryView: View {
             }
         }
         .onAppear { if model.health == nil { model.load() } }
+    }
+
+    @ViewBuilder private func chargeLimit(_ b: BatteryHealth) -> some View {
+        switch b.limitStatus {
+        case .set(let l):
+            Label("Limite impostato al \(l)%.", systemImage: "checkmark.circle").foregroundStyle(Brand.accent)
+        case .holding(let p):
+            Label("Il Mac è collegato ma si ferma al \(p)%: il limite di carica (o la carica ottimizzata) è attivo.",
+                  systemImage: "checkmark.circle")
+                .foregroundStyle(Brand.accent)
+        case .full:
+            Label("Il Mac è collegato e la batteria è al 100%: il limite di carica probabilmente non è impostato.",
+                  systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+        case .unknown:
+            Text(b.pluggedIn ? "In carica: lo stato del limite si vedrà quando la carica si ferma."
+                 : "A batteria: lo stato del limite si vede quando il Mac è collegato.")
+                .foregroundStyle(.secondary)
+        }
+        if model.habits.samples >= 24 {
+            Text("Nell'ultima settimana il Mac è stato collegato il \(Int(model.habits.pluggedShare * 100))% del tempo"
+                 + (model.habits.pluggedShare > 0 ? ", e al 100% per il \(Int(model.habits.fullWhenPlugged * 100))% di quel tempo." : "."))
+                .font(.callout)
+        }
+        if model.habits.suggestsLimit, b.limitStatus == .full || b.chargeLimit == nil {
+            Text("Usi il Mac quasi sempre alla corrente: imposta il limite all'80%. È la cosa che allunga di più la vita della batteria.")
+                .font(.callout.bold()).foregroundStyle(Color.orange)
+        }
+        Text("Una batteria tenuta a lungo al 100% (soprattutto al caldo) perde capacità più in fretta. Con il limite all'80% il Mac usa la corrente e lascia riposare la batteria. Quando ti serve la carica piena (un viaggio), alza il limite la sera prima.")
+            .font(.caption).foregroundStyle(.secondary)
+        HStack {
+            Button("Imposta il limite…") { Finder.open("x-apple.systempreferences:com.apple.Battery-Settings.extension") }
+                .buttonStyle(.borderedProminent)
+            Text("Impostazioni › Batteria › «i» accanto a «Carica». Puoi anche crearti due Comandi Rapidi («carica piena» e «torna all'80%»).")
+                .font(.caption).foregroundStyle(.secondary)
+        }
     }
 
     private func tile(_ title: String, _ value: String) -> some View {

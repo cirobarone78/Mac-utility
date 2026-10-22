@@ -38,7 +38,7 @@ Serve una chiave API di Anthropic (console.anthropic.com → API Keys): la si in
 ### Altri strumenti
 
 - **Rete e Wi-Fi**: segnale, rumore, canale, banda, protezione, velocità del collegamento al router, traffico in tempo reale, IP, router, DNS, VPN e proxy; test di velocità con `networkQuality` di Apple (download, upload, latenza, reattività), latenza e pacchetti persi verso router e internet, tempo del DNS, cronologia; reti vicine e affollamento dei canali; app collegate a internet e dispositivi sulla rete; consigli. Il nome della rete richiede il permesso Localizzazione (regola di macOS).
-- **Batteria**: capacità massima, cicli, condizione, temperatura, potenza, alimentatore e app che consumano di più.
+- **Batteria**: capacità massima, cicli, condizione, temperatura, potenza, alimentatore e app che consumano di più; stato del limite di carica di macOS (26.4 e successivi), abitudini di carica dell'ultima settimana e consiglio di impostarlo all'80% se il Mac sta quasi sempre collegato.
 - **Manutenzione automatica**: ogni giorno, settimana o mese controlla spazio da liberare, aggiornamenti, backup, disco e batteria e manda una notifica. Non cancella e non installa nulla.
 
 Le chiavi di VirusTotal e Have I Been Pwned stanno nel Portachiavi, come quella di Anthropic.

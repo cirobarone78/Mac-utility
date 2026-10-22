@@ -24,6 +24,32 @@ public struct BatteryHealth: Sendable {
     public var minutesRemaining: Int?
     public var lowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
     public var manufactureDate: String?
+    /// Limite di carica impostato (macOS 26.4 e successivi), se macOS lo espone.
+    public var chargeLimit: Int?
+
+    /// Collegato, non in carica e sotto il 97%: macOS sta trattenendo la carica (limite o carica ottimizzata).
+    public var holdingCharge: Bool {
+        guard pluggedIn, !charging, let c = charge else { return false }
+        return c < 0.97
+    }
+
+    public enum LimitStatus: Sendable, Equatable {
+        /// Limite letto dalle impostazioni.
+        case set(Int)
+        /// Il Mac è collegato ma si ferma a questa percentuale.
+        case holding(Int)
+        /// Collegato e al 100%: il limite probabilmente non è impostato.
+        case full
+        /// A batteria o in carica: non si può dire.
+        case unknown
+    }
+
+    public var limitStatus: LimitStatus {
+        if let l = chargeLimit, l < 100 { return .set(l) }
+        if holdingCharge, let c = charge { return .holding(Int((c * 100).rounded())) }
+        if pluggedIn, let c = charge, c >= 0.99 { return .full }
+        return .unknown
+    }
 }
 
 public struct EnergyUser: Identifiable, Sendable {
@@ -63,6 +89,7 @@ public enum Battery {
                 }
                 if let t = d["TimeRemaining"] as? Int, t > 0, t < 6000 { b.minutesRemaining = t }
                 if let m = d["ManufactureDate"] as? Int { b.manufactureDate = decodeDate(m) }
+                b.chargeLimit = findChargeLimit(d)
             }
         }
         if let adapter = IOPSCopyExternalPowerAdapterDetails()?.takeRetainedValue() as? [String: Any] {
@@ -73,6 +100,20 @@ public enum Battery {
         b.condition = condition
         if let percent { b.maxCapacity = percent }
         return b
+    }
+
+    /// Il nome della chiave non è documentato: si cerca qualsiasi valore «…ChargeLimit…» plausibile.
+    static func findChargeLimit(_ dict: [String: Any], depth: Int = 0) -> Int? {
+        for (key, value) in dict {
+            let k = key.lowercased()
+            if k.contains("chargelimit") || k.contains("chargingLimit".lowercased()) || k == "socmax" {
+                if let n = value as? Int, (50...100).contains(n) { return n }
+            }
+            if depth < 2, let sub = value as? [String: Any], let found = findChargeLimit(sub, depth: depth + 1) {
+                return found
+            }
+        }
+        return nil
     }
 
     static func systemProfiler() -> (String?, Double?) {
@@ -142,10 +183,58 @@ public enum Battery {
         if let t = b.temperature, t > 40 {
             out.append(.init(warning: true, text: "Temperatura alta (\(Int(t)) °C). Il caldo è il primo nemico della batteria: non tenere il Mac su coperte o al sole, e chiudi le app che consumano molto."))
         }
-        if b.pluggedIn {
-            out.append(.init(warning: false, text: "Se il Mac resta quasi sempre in carica, tieni attiva la «Carica ottimizzata» (Impostazioni › Batteria › i accanto a Stato della batteria): macOS si ferma all'80% finché non serve."))
-        }
         return out
+    }
+}
+/// Abitudini di carica: un campione all'ora per una settimana, per capire se il Mac
+/// sta quasi sempre collegato al 100% (il caso in cui il limite di carica aiuta di più).
+public enum ChargeHabits {
+    public struct Sample: Codable, Sendable {
+        public let date: Date
+        public let pluggedIn: Bool
+        public let full: Bool
+    }
+
+    public struct Summary: Sendable {
+        public let samples: Int
+        /// Quota di tempo collegato alla corrente.
+        public let pluggedShare: Double
+        /// Quota del tempo collegato passata al 100%.
+        public let fullWhenPlugged: Double
+
+        /// Almeno 2 giorni di dati, collegato per il 70% del tempo e al 100% per metà di quel tempo.
+        public var suggestsLimit: Bool { samples >= 48 && pluggedShare >= 0.7 && fullWhenPlugged >= 0.5 }
+    }
+
+    static var url: URL {
+        SafetyPolicy.defaultFileURL.deletingLastPathComponent().appendingPathComponent("batteria-abitudini.json")
+    }
+
+    static func load() -> [Sample] {
+        guard let data = try? Data(contentsOf: url) else { return [] }
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return (try? d.decode([Sample].self, from: data)) ?? []
+    }
+
+    public static func record(_ b: BatteryHealth, now: Date = Date()) {
+        guard b.present, let charge = b.charge else { return }
+        var list = load().filter { now.timeIntervalSince($0.date) < 7 * 86_400 }
+        if let last = list.last, now.timeIntervalSince(last.date) < 50 * 60 { return }   // al massimo uno all'ora
+        list.append(Sample(date: now, pluggedIn: b.pluggedIn, full: charge >= 0.99))
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? e.encode(list).write(to: url, options: .atomic)
+    }
+
+    public static func summary() -> Summary { summary(load()) }
+
+    static func summary(_ list: [Sample]) -> Summary {
+        let plugged = list.filter(\.pluggedIn)
+        return Summary(samples: list.count,
+                       pluggedShare: list.isEmpty ? 0 : Double(plugged.count) / Double(list.count),
+                       fullWhenPlugged: plugged.isEmpty ? 0 : Double(plugged.filter(\.full).count) / Double(plugged.count))
     }
 }
 #endif

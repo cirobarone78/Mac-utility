@@ -601,4 +601,27 @@ final class BatteryAndVaultTests: XCTestCase {
         XCTAssertEqual(Vault.mountPoints(inPlist: "Messaggio\n" + plist), ["/Volumes/Cassaforte"])
     }
 }
+final class ChargeLimitTests: XCTestCase {
+    func testStatus() {
+        var b = BatteryHealth()
+        b.present = true
+        b.pluggedIn = true
+        b.charge = 1.0
+        XCTAssertEqual(b.limitStatus, .full)
+        b.charge = 0.8
+        XCTAssertEqual(b.limitStatus, .holding(80))
+        b.chargeLimit = 85
+        XCTAssertEqual(b.limitStatus, .set(85))
+        XCTAssertEqual(Battery.findChargeLimit(["BatteryData": ["ChargeLimit": 80]]), 80)
+    }
+
+    func testHabits() {
+        let now = Date()
+        let samples = (0..<60).map { i in
+            ChargeHabits.Sample(date: now.addingTimeInterval(Double(-i) * 3600), pluggedIn: i % 10 != 0, full: true)
+        }
+        XCTAssertTrue(ChargeHabits.summary(samples).suggestsLimit)
+        XCTAssertFalse(ChargeHabits.summary(Array(samples.prefix(10))).suggestsLimit)
+    }
+}
 #endif

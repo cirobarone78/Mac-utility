@@ -45,6 +45,9 @@ struct MaintenanceView: View {
                         if let c = r.batteryCapacity {
                             line("Batteria", "capacità al \(Int((c * 100).rounded()))%", .battery, warn: c < 0.8)
                         }
+                        if r.suggestChargeLimit == true {
+                            line("Limite di carica", "sempre al 100% in carica: imposta l'80%", .battery, warn: true)
+                        }
                     }
                 }
             }
