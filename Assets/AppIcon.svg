@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#11203a"/>
+      <stop offset="1" stop-color="#04070f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.55" r="0.5">
+      <stop offset="0" stop-color="#2dd4c8" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#2dd4c8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#0f766e"/>
+      <stop offset="0.55" stop-color="#2dd4c8"/>
+      <stop offset="1" stop-color="#a7f3eb"/>
+    </linearGradient>
+    <linearGradient id="needle" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#e2fbf8"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft" filterUnits="userSpaceOnUse" x="-1024" y="-1024" width="3072" height="3072">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <filter id="shadow" filterUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+    <clipPath id="squircle"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+  </defs>
+
+  <!-- Fondo a «squircle» in stile macOS -->
+  <g filter="url(#shadow)">
+    <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  </g>
+  <g clip-path="url(#squircle)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#glow)"/>
+    <!-- fasci di luce, come lo sfondo di OmniNeo -->
+    <path d="M60 820 L520 60 L600 60 L140 820 Z" fill="#2dd4c8" opacity="0.06"/>
+    <path d="M300 980 L900 120 L940 120 L340 980 Z" fill="#2dd4c8" opacity="0.05"/>
+  </g>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="184" fill="none" stroke="url(#rim)" stroke-width="3"/>
+
+  <!-- Quadrante: arco a «O» di 270 gradi -->
+  <g transform="translate(512 548)">
+    <circle r="250" fill="none" stroke="#2dd4c8" stroke-opacity="0.10" stroke-width="64"
+            stroke-dasharray="1178 393" transform="rotate(135)" stroke-linecap="round"/>
+    <circle r="250" fill="none" stroke="url(#ring)" stroke-width="64" stroke-linecap="round"
+            stroke-dasharray="1178 393" transform="rotate(135)" filter="url(#soft)" opacity="0.7"/>
+    <circle r="250" fill="none" stroke="url(#ring)" stroke-width="56" stroke-linecap="round"
+            stroke-dasharray="1178 393" transform="rotate(135)"/>
+    <!-- tacche -->
+    <g stroke="#cffaf5" stroke-opacity="0.55" stroke-width="10" stroke-linecap="round">
+      <line x1="0" y1="-180" x2="0" y2="-155" transform="rotate(-135)"/>
+      <line x1="0" y1="-180" x2="0" y2="-155" transform="rotate(-90)"/>
+      <line x1="0" y1="-180" x2="0" y2="-155" transform="rotate(-45)"/>
+      <line x1="0" y1="-180" x2="0" y2="-155"/>
+      <line x1="0" y1="-180" x2="0" y2="-155" transform="rotate(45)"/>
+      <line x1="0" y1="-180" x2="0" y2="-155" transform="rotate(90)"/>
+      <line x1="0" y1="-180" x2="0" y2="-155" transform="rotate(135)"/>
+    </g>
+    <!-- lancetta -->
+    <g transform="rotate(42)">
+      <path d="M-15 0 L0 -170 L15 0 Z" fill="url(#needle)"/>
+    </g>
+    <circle r="40" fill="#0c1628" stroke="#2dd4c8" stroke-width="14"/>
+    <circle r="12" fill="#2dd4c8"/>
+  </g>
+
+  <!-- scintilla: la pulizia -->
+  <g transform="translate(748 292)">
+    <path d="M0 -64 C8 -20 20 -8 64 0 C20 8 8 20 0 64 C-8 20 -20 8 -64 0 C-20 -8 -8 -20 0 -64 Z"
+          fill="#ffffff" filter="url(#soft)" opacity="0.6"/>
+    <path d="M0 -60 C7 -19 19 -7 60 0 C19 7 7 19 0 60 C-7 19 -19 7 -60 0 C-19 -7 -7 -19 0 -60 Z"
+          fill="#ffffff"/>
+  </g>
+  <g transform="translate(830 400) scale(0.42)">
+    <path d="M0 -60 C7 -19 19 -7 60 0 C19 7 7 19 0 60 C-7 19 -19 7 -60 0 C-19 -7 -7 -19 0 -60 Z"
+          fill="#a7f3eb"/>
+  </g>
+</svg>
