@@ -10,7 +10,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.applicationIconImage = icon
         }
         NSApp.activate(ignoringOtherApps: true)
-        Task { @MainActor in SystemMonitor.shared.start() }
+        Task { @MainActor in
+            SystemMonitor.shared.start()
+            MediaMonitor.shared.start()
+            Maintenance.shared.start()
+            if MediaMonitor.notifyEnabled || Maintenance.shared.enabled { Notifier.requestPermission() }
+        }
     }
 
     /// L'icona nella barra dei menu resta attiva: chiudere la finestra non chiude l'app.

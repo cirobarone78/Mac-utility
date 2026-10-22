@@ -29,6 +29,7 @@ extension Color {
 enum Module: String, CaseIterable, Identifiable {
     case dashboard, space, cleanup, duplicates, photos, whatsapp, system, startup, security, organize, assistant, doctor, rename, history, rules
     case uninstall, updates, privacy, backup, virustotal, breaches
+    case network, battery, mediaWatch, vault, maintenance
     var id: String { rawValue }
 
     var title: String {
@@ -54,6 +55,11 @@ enum Module: String, CaseIterable, Identifiable {
         case .backup: "Backup"
         case .virustotal: "Seconda opinione"
         case .breaches: "Furti di dati"
+        case .network: "Rete e Wi-Fi"
+        case .battery: "Batteria"
+        case .mediaWatch: "Fotocamera e microfono"
+        case .vault: "Cassaforte"
+        case .maintenance: "Manutenzione automatica"
         }
     }
 
@@ -80,6 +86,11 @@ enum Module: String, CaseIterable, Identifiable {
         case .backup: "externaldrive.badge.timemachine"
         case .virustotal: "magnifyingglass.circle"
         case .breaches: "person.badge.key"
+        case .network: "wifi"
+        case .battery: "battery.75percent"
+        case .mediaWatch: "web.camera"
+        case .vault: "lock.rectangle.stack"
+        case .maintenance: "calendar.badge.clock"
         }
     }
 }

@@ -9,10 +9,10 @@ struct ContentView: View {
             List(selection: $state.selection) {
                 Section("Strumenti") {
                     ForEach([Module.dashboard, .space, .cleanup, .organize, .duplicates, .photos, .whatsapp,
-                             .uninstall, .updates, .system, .startup]) { row($0) }
+                             .uninstall, .updates, .network, .battery, .system, .startup]) { row($0) }
                 }
                 Section("Protezione") {
-                    ForEach([Module.security, .virustotal, .breaches, .privacy, .backup]) { row($0) }
+                    ForEach([Module.security, .virustotal, .breaches, .privacy, .mediaWatch, .vault, .backup]) { row($0) }
                 }
                 Section("Intelligenza artificiale") {
                     row(.doctor)
@@ -20,6 +20,7 @@ struct ContentView: View {
                     row(.rename)
                 }
                 Section {
+                    row(.maintenance)
                     row(.history)
                     row(.rules)
                 }
@@ -49,6 +50,11 @@ struct ContentView: View {
                 case .backup: BackupView()
                 case .virustotal: VirusTotalView()
                 case .breaches: BreachesView()
+                case .network: NetworkView()
+                case .battery: BatteryView()
+                case .mediaWatch: MediaWatchView()
+                case .vault: VaultView()
+                case .maintenance: MaintenanceView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

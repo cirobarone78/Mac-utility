@@ -554,4 +554,51 @@ final class BackupFindingsTests: XCTestCase {
         XCTAssertTrue(BackupCheck.findings(for: BackupReport(), now: now).first?.title.contains("non è configurato") == true)
     }
 }
+final class NetworkParsingTests: XCTestCase {
+    func testPing() {
+        let out = """
+        10 packets transmitted, 9 packets received, 10.0% packet loss
+        round-trip min/avg/max/stddev = 3.101/4.250/6.002/0.812 ms
+        """
+        let (avg, jitter) = NetworkTests.parseRoundTrip(out)
+        XCTAssertEqual(avg ?? 0, 4.25, accuracy: 0.001)
+        XCTAssertEqual(jitter ?? 0, 0.812, accuracy: 0.001)
+        XCTAssertEqual(NetworkTests.parseLoss(out), 10.0)
+    }
+
+    func testSpeed() {
+        let json: [String: Any] = ["dl_throughput": 250_000_000, "ul_throughput": 20_000_000,
+                                   "dl_responsiveness": 1200, "base_rtt": 18.5, "interface_name": "en0"]
+        let r = NetworkTests.parseSpeed(json)
+        XCTAssertEqual(r?.download, 250_000_000)
+        XCTAssertEqual(r?.responsivenessLabel, "alta")
+        XCTAssertEqual(SpeedTestResult.mbps(250_000_000), "250,0 Mbit/s")
+    }
+
+    func testSecurityLevels() {
+        XCTAssertEqual(WiFi.securityLevel(0), .open)
+        XCTAssertEqual(WiFi.securityLevel(1), .weak)
+        XCTAssertEqual(WiFi.securityLevel(4), .good)
+        XCTAssertEqual(WiFi.securityLevel(11), .strong)
+    }
+}
+
+final class BatteryAndVaultTests: XCTestCase {
+    func testManufactureDate() {
+        // 15/03/2022: giorno 15, mese 3, anno 2022 - 1980 = 42
+        let v = 15 | (3 << 5) | (42 << 9)
+        XCTAssertEqual(Battery.decodeDate(v), "15/03/2022")
+    }
+
+    func testMountPoint() {
+        let plist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <plist version="1.0"><dict><key>system-entities</key><array>
+        <dict><key>dev-entry</key><string>/dev/disk5</string></dict>
+        <dict><key>mount-point</key><string>/Volumes/Cassaforte</string></dict>
+        </array></dict></plist>
+        """
+        XCTAssertEqual(Vault.mountPoints(inPlist: "Messaggio\n" + plist), ["/Volumes/Cassaforte"])
+    }
+}
 #endif

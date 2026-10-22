@@ -37,6 +37,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>NSHighResolutionCapable</key><true/>
   <key>NSHumanReadableCopyright</key><string>OmniTools</string>
   <key>NSPhotoLibraryUsageDescription</key><string>OmniTools legge le miniature della libreria di Foto per trovare doppioni e foto simili. Nessuna foto viene eliminata senza la tua conferma.</string>
+  <key>NSLocationUsageDescription</key><string>macOS mostra il nome della rete Wi-Fi e delle reti vicine solo alle app con il permesso Localizzazione. OmniTools non usa né salva la tua posizione.</string>
+  <key>NSLocationWhenInUseUsageDescription</key><string>macOS mostra il nome della rete Wi-Fi e delle reti vicine solo alle app con il permesso Localizzazione. OmniTools non usa né salva la tua posizione.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>OmniTools misura la latenza verso il router e mostra i dispositivi presenti sulla tua rete.</string>
   <key>NSAppleEventsUsageDescription</key><string>OmniTools chiede al Finder di spostare nel Cestino (e rimettere a posto) i file che macOS non gli permette di spostare da solo, come quelli di iCloud Drive.</string>
 </dict>
 </plist>

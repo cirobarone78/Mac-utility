@@ -5,11 +5,15 @@ import UtilityCore
 /// Icona della barra dei menu: monocromatica ("template"), macOS la colora secondo il tema.
 struct MenuBarLabel: View {
     @ObservedObject private var monitor = SystemMonitor.shared
+    @ObservedObject private var media = MediaMonitor.shared
     @AppStorage("menubar.showFree") private var showFree = false
 
     var body: some View {
         HStack(spacing: 4) {
             Image(nsImage: Self.icon)
+            // Fotocamera o microfono accesi: un simbolo in più accanto all'icona.
+            if media.state.cameraOn { Image(systemName: "video.fill") }
+            if media.state.micOn { Image(systemName: "mic.fill") }
             if showFree && monitor.snapshot.diskTotal > 0 {
                 Text(Bytes.format(monitor.snapshot.diskFree)).monospacedDigit()
             }
@@ -87,6 +91,8 @@ struct MenuBarPanel: View {
             if let b = s.battery {
                 meter("Batteria", value: b, detail: s.charging ? "in carica" : "\(Int(b * 100))%", invert: true)
             }
+
+            MediaLine()
 
             Divider()
             quickClean
@@ -179,5 +185,27 @@ struct MenuBarPanel: View {
         f.unitsStyle = .abbreviated
         f.maximumUnitCount = 2
         return "acceso da " + (f.string(from: t) ?? "–")
+    }
+}
+
+/// Riga del pannello: chi sta usando fotocamera o microfono.
+struct MediaLine: View {
+    @ObservedObject private var media = MediaMonitor.shared
+
+    var body: some View {
+        if media.state.cameraOn || media.state.micOn {
+            VStack(alignment: .leading, spacing: 4) {
+                if media.state.cameraOn {
+                    Label("Fotocamera accesa" + (media.cameraApps.isEmpty ? "" : " – " + media.cameraApps.joined(separator: ", ")),
+                          systemImage: "video.fill")
+                }
+                if media.state.micOn {
+                    Label("Microfono acceso" + (media.micApps.isEmpty ? "" : " – " + media.micApps.joined(separator: ", ")),
+                          systemImage: "mic.fill")
+                }
+            }
+            .font(.callout)
+            .foregroundStyle(.orange)
+        }
     }
 }

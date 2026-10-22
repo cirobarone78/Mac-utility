@@ -56,6 +56,7 @@ private struct HistoryRow: View {
         case "Rinomina": Module.rename.icon
         case "Disinstallazione": Module.uninstall.icon
         case "Privacy": Module.privacy.icon
+        case "Cassaforte": Module.vault.icon
         case "Riordino": Module.organize.icon
         case "Assistente AI": Module.assistant.icon
         case "Analisi spazio": Module.space.icon

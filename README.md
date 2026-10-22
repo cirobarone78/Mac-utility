@@ -32,6 +32,15 @@ Serve una chiave API di Anthropic (console.anthropic.com → API Keys): la si in
 - **Seconda opinione**: confronta l'impronta di un file con VirusTotal (circa 70 antivirus). Serve una chiave gratuita; il file non lascia il Mac.
 - **Furti di dati**: controlla una password con Have I Been Pwned (gratis e anonimo) e, con la chiave a pagamento, il tuo indirizzo email.
 
+- **Fotocamera e microfono**: notifica quando si accendono, simbolo accanto all'icona nella barra dei menu e registro di chi li ha usati.
+- **Cassaforte**: immagine disco cifrata AES-256 (strumento `hdiutil` di macOS) con password; OmniTools non la conserva.
+
+### Altri strumenti
+
+- **Rete e Wi-Fi**: segnale, rumore, canale, banda, protezione, velocità del collegamento al router, traffico in tempo reale, IP, router, DNS, VPN e proxy; test di velocità con `networkQuality` di Apple (download, upload, latenza, reattività), latenza e pacchetti persi verso router e internet, tempo del DNS, cronologia; reti vicine e affollamento dei canali; app collegate a internet e dispositivi sulla rete; consigli. Il nome della rete richiede il permesso Localizzazione (regola di macOS).
+- **Batteria**: capacità massima, cicli, condizione, temperatura, potenza, alimentatore e app che consumano di più.
+- **Manutenzione automatica**: ogni giorno, settimana o mese controlla spazio da liberare, aggiornamenti, backup, disco e batteria e manda una notifica. Non cancella e non installa nulla.
+
 Le chiavi di VirusTotal e Have I Been Pwned stanno nel Portachiavi, come quella di Anthropic.
 
 ### Accesso completo al disco
