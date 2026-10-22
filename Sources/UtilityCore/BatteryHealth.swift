@@ -27,6 +27,8 @@ public struct BatteryHealth: Sendable {
     /// Limite di carica impostato (macOS 26.4 e successivi), se macOS lo espone.
     public var chargeLimit: Int?
 
+    public init() {}
+
     /// Collegato, non in carica e sotto il 97%: macOS sta trattenendo la carica (limite o carica ottimizzata).
     public var holdingCharge: Bool {
         guard pluggedIn, !charging, let c = charge else { return false }

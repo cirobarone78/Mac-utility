@@ -187,6 +187,8 @@ public struct NetworkDetails: Sendable {
     public var vpnActive = false
     public var vpnNames: [String] = []
     public var proxy: String?
+
+    public init() {}
 }
 
 public struct PublicIPInfo: Codable, Sendable {

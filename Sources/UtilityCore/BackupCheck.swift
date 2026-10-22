@@ -31,6 +31,8 @@ public struct BackupReport: Sendable {
     public var findings: [Finding] = []
     /// Le preferenze di Time Machine non sono leggibili (serve Accesso completo al disco).
     public var unreadable = false
+
+    public init() {}
 }
 
 public enum BackupCheck {

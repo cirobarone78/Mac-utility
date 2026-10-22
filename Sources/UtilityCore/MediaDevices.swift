@@ -9,6 +9,8 @@ public struct MediaState: Equatable, Sendable {
     public var micOn = false
     /// Identificativi (o PID) dei programmi che stanno usando il microfono (macOS 14.2 e successivi).
     public var micClients: [MediaClient] = []
+
+    public init() {}
 }
 
 public struct MediaClient: Hashable, Sendable {

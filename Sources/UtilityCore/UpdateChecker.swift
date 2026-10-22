@@ -29,6 +29,8 @@ public struct UpdateReport: Sendable {
     /// App il cui controllo non è riuscito (rete, indirizzo non sicuro…).
     public var failed: [String] = []
     public var checked = 0
+
+    public init() {}
 }
 
 public enum UpdateChecker {
